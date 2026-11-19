@@ -4,7 +4,7 @@ Hear a song, learn it the way it was recorded: capo, tuning, the exact chord sha
 
 Live: https://prestonnoland2020-hub.github.io/Voicing/
 
-Everything runs on the phone in the browser. No account, no server, nothing uploaded.
+Everything runs on the phone in the browser. No account, nothing uploaded. An optional guitar splitter server (`server/`) can be switched on later; until then the app never contacts it.
 
 ## Layout
 
@@ -23,7 +23,7 @@ Everything runs on the phone in the browser. No account, no server, nothing uplo
 
 - `tests/tuner.test.js`: all six strings, in tune and 3 to 30 cents sharp and flat, at 44.1 and 48 kHz, with a clean tone and real recorded acoustic, nylon and electric guitar.
 - `tests/engine.test.js`: the demo reads back exactly; silence, noise, short and clipped audio don't break it.
-- `tests/accuracy.js`: 36 songs (20 for tuning, 16 held out) with known chords, shapes, capo, tuning, tempo and licks, in five mixes: clean, with a band, through a phone mic, real recorded guitar, real guitar with a band. Scores each against a target and against `tests/baseline.json`. The push fails if any score drops more than 2 points. Run `node tests/accuracy.js --update-baseline` after a real improvement.
+- `tests/accuracy.js`: 36 songs (20 for tuning, 16 held out) with known chords, shapes, capo, tuning, tempo and licks, in six mixes: clean, with a band, through a phone mic, real recorded guitar, real guitar with a band, and a pulled-out guitar track (what the splitter sends back). Scores each against a target and against `tests/baseline.json`. The push fails if any score drops more than 2 points. Run `node tests/accuracy.js --update-baseline` after a real improvement.
 - `tests/ui.test.js`: every screen at iPhone SE, 15 and 15 Pro Max sizes (no sideways scroll, nothing off screen, no overlapping or too-small buttons), the full tap-through, the tuner and listening flows with a fake microphone, a refused microphone, and the problem log.
 - `tests/live.check.js`: the live-site check.
 

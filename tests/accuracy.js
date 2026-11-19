@@ -6,12 +6,13 @@ const BARS = { // pass bars per mix
   band:  { chord: 0.85, voicing: 0.65, capo: 0.75, tempo: 1, beatF: 0.80, lickF: 0.70, tune: 1 },
   phone: { chord: 0.80, voicing: 0.55, capo: 0.6, tempo: 0.85, beatF: 0.70, lickF: 0.55, tune: 1 },
   real:  { chord: 0.88, voicing: 0.70, capo: 0.85, tempo: 0.95, beatF: 0.85, lickF: 0.70, tune: 0.9 },
+  stem: { chord: 0.88, voicing: 0.70, capo: 0.85, tempo: 0.95, beatF: 0.85, lickF: 0.70, tune: 0.9 },
   realband: { chord: 0.80, voicing: 0.55, capo: 0.6, tempo: 0.85, beatF: 0.70, lickF: 0.50, tune: 0.85 },
 };
 const parse = name => { const m = name.match(/^([A-G](?:#|b)?)(.*)$/); return { root: ENG.NOTE.indexOf(m[1]), fam: /^m(?!aj)/.test(m[2]) ? 'min' : 'maj' }; };
 async function scoreOne(song, mixName, verbose) {
-  const { x, truth } = render(song, MIXES[mixName], 1);
-  const r = await ENG.analyze(x);
+  const { x, truth, guitar } = render(song, MIXES[mixName], 1);
+  const r = await ENG.analyze(x, null, { guitar });
   // chord accuracy on a 50 ms grid, skipping 150 ms around true changes
   let ok = 0, tot = 0; const conf = {};
   const at = t => r.timeline.find(g => g.t <= t && g.end > t);

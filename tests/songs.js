@@ -30,6 +30,7 @@ const BANKS = {}; function loadBank(name) { if (!BANKS[name]) { const fs = requi
   BANKS[name] = {}; for (const f of fs.readdirSync(dir)) if (f.endsWith('.wav')) BANKS[name][parseInt(f)] = readWav(path.join(dir, f)).x; } return BANKS[name]; }
 function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
 function render(song, mix, seed = 1) {
+  if (mix.stem) { const full = render(song, { ...mix, stem: null }, seed), g = render(song, { jitter: mix.jitter, real: mix.real, ...mix.stem }, seed); return { x: full.x, guitar: g.x, truth: full.truth }; }
   const rnd = rng(seed * 7919 + song.bpm), beat = 60 / song.bpm, t0 = 0.4, per = song.perChord || 1;
   const len = Math.ceil((t0 + song.bars * 4 * beat + 1.5) * SR), out = new Float32Array(len);
   const tuneK = Math.pow(2, song.tune / 1200), jit = mix.jitter || 0;
@@ -82,6 +83,8 @@ const MIXES = {
   phone: { jitter: 0.02, bass: 0.35, drums: 0.5, noise: 0.02, room: 1 },
   real: { jitter: 0.012, real: 'rotate' },            // real recorded guitar notes: acoustic, nylon or electric
   realband: { jitter: 0.015, real: 'rotate', bass: 0.35, drums: 0.5, noise: 0.01, room: 1 },
+  // the full band song, plus the guitar as a splitter would hand it back: guitar with a little drum and bass bleed
+  stem: { jitter: 0.015, real: 'rotate', bass: 0.35, drums: 0.5, noise: 0.01, room: 1, stem: { bass: 0.35 * 0.12, drums: 0.5 * 0.15, noise: 0.004 } },
 };
 module.exports = { SONGS, MIXES, render, SR, OPEN, PC };
 // ---- procedurally generated songs (for a bigger tuning set and a held-out set) ----

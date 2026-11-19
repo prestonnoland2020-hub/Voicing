@@ -208,6 +208,9 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
 .field{display:flex;flex-direction:column;gap:6px}
 .field input{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;min-height:50px;width:100%;box-sizing:border-box}
 .field input:focus{outline:none;border-color:var(--brass)}
+.splitopt{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;font-size:15px;line-height:1.35}
+.splitopt input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--brass);flex:none}
+.splitopt small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
 .label em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:500}
 /* library */
 .liblist{display:flex;flex-direction:column;gap:10px}
@@ -293,6 +296,7 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
         <small>Play the song out loud near your phone</small>
       </div>
       <button class="quiet" id="demo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Or try the demo track</button>
+      <label class="splitopt" id="splitRow" hidden><input type="checkbox" id="splitOn"><span><b>Better with a full band</b><small>Sends the recording to Voicing's server to pull the guitar out first. Needs internet; the song isn't kept.</small></span></label>
       <p class="err" id="pickErr" hidden></p>
     </div>
     <p class="ver"><span id="verTxt">Version /*VERSION*/</span><button class="link" id="openLog" type="button">Problem log <span id="logN"></span></button></p>
@@ -569,6 +573,20 @@ function drawScribble(x) {
   pts.forEach((v, i) => { const xx = (i + .5) * 300 / n, a = v / mx * 19; d += ` L${xx.toFixed(1)},${(22 - a).toFixed(1)} L${(xx + 1.2).toFixed(1)},${(22 + a).toFixed(1)}`; });
   $('scribble').innerHTML = `<path class="s a draw" pathLength="1" style="--d:2.4s;stroke-width:1.4" d="${d}"/>`;
 }
+// ---------- optional guitar splitter (server); off unless SPLIT_URL is set and the switch is on ----------
+const SPLIT_URL = '/*SPLIT_URL*/'.startsWith('/*') ? '' : '/*SPLIT_URL*/';
+const splitOK = () => !!(globalThis.SPLIT_URL_TEST || SPLIT_URL);
+if (splitOK()) { $('splitRow').hidden = false; try { $('splitOn').checked = localStorage.getItem('voicing.split') === '1'; } catch (e) {} }
+$('splitOn').onchange = () => { try { localStorage.setItem('voicing.split', $('splitOn').checked ? '1' : '0'); } catch (e) {} };
+async function splitGuitar(x) {
+  const url = (globalThis.SPLIT_URL_TEST || SPLIT_URL).replace(/\/$/, '') + '/split', ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 120000);
+  try {
+    const r = await fetch(url, { method: 'POST', body: ENG.wav(x), headers: { 'Content-Type': 'audio/wav' }, signal: ctl.signal });
+    if (!r.ok) throw new Error('splitter HTTP ' + r.status);
+    const g = await decodeFile(await r.arrayBuffer());
+    return g.length > ENG.SR ? g : null;
+  } finally { clearTimeout(t); }
+}
 async function run(getSamples, meta) {
   cancelled = false; song = meta; $('pickErr').hidden = true;
   $('aCover').querySelectorAll('img,.ph').forEach(e => e.remove());
@@ -580,7 +598,13 @@ async function run(getSamples, meta) {
     const x = await getSamples(); if (cancelled) return;
     drawScribble(x);
     const t0 = performance.now();
-    const res = await ENG.analyze(x, i => { if (!cancelled) setStep(i); });
+    let guitar = null;
+    if (splitOK() && $('splitOn').checked && !meta.demo) {
+      $('steps').children[0].querySelector('span').textContent = 'Pulling the guitar out (online)';
+      try { guitar = await splitGuitar(x); } catch (e) { LOG.add('splitter', e.message); }
+      if (cancelled) return;
+    }
+    const res = await ENG.analyze(x, i => { if (!cancelled) setStep(i); }, { guitar });
     if (cancelled) return;
     if (!res.chords.length) throw new Error('nochords');
     await new Promise(r => setTimeout(r, Math.max(0, 1400 - (performance.now() - t0))));

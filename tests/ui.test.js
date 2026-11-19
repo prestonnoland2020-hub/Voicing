@@ -107,6 +107,26 @@ const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7), r
     ok('problem log catches crashes', await p.evaluate(() => LOG.read().some(e => e.msg.includes('test crash'))));
     await bd.close(); }
 
+  // 5) guitar splitter (server), against a stand-in server: hidden by default, sends the recording when switched on,
+  //    reads the guitar it gets back, and still works (logged) when the server fails
+  if (run('splitter')) { const x = ENG.synthDemo(), f = wavFile('demo-mic2', x, ENG.SR), clean = Buffer.from(ENG.wav(x));
+    const bs = await launch(['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--use-file-for-fake-audio-capture=' + f]);
+    { const p = await page(bs, PHONES[1]); ok('splitter: switch hidden until a server is set', !(await p.isVisible('#splitRow'))); await p.context().close(); }
+    for (const [label, status] of [['server works', 200], ['server fails', 500]]) {
+      const ctx = await bs.newContext({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce', permissions: ['microphone'] });
+      await ctx.addInitScript(() => { globalThis.SPLIT_URL_TEST = 'https://split.test'; });
+      let sent = 0; await ctx.route('https://split.test/**', r => { sent = (r.request().postDataBuffer() || []).length; r.fulfill(status === 200 ? { status, body: clean, contentType: 'audio/wav', headers: { 'access-control-allow-origin': '*' } } : { status, body: 'boom', headers: { 'access-control-allow-origin': '*' } }); });
+      const p = await ctx.newPage(); p.errs = []; p.on('pageerror', e => p.errs.push(e.message)); await p.goto(URL0); await p.waitForTimeout(500);
+      if (status === 200) { ok('splitter: switch shows once a server is set', await p.isVisible('#splitRow')); await layout(p, PHONES[1], 'pick-with-splitter'); }
+      await p.check('#splitOn'); await p.click('#listen'); await p.waitForFunction(() => !document.getElementById('stopRec').disabled, null, { timeout: 15000 }); await p.waitForTimeout(4000);
+      await p.click('#stopRec'); await p.waitForSelector('#s-lesson:not([hidden])', { timeout: 90000 }); await p.waitForTimeout(300);
+      ok(`splitter (${label}): sent the recording`, sent > 100000, `${sent} bytes`);
+      ok(`splitter (${label}): lesson reads capo 2`, /2/.test(await p.textContent('#fCapo')), await p.textContent('#fCapo'));
+      const logged = await p.evaluate(() => LOG.read().some(e => e.kind === 'splitter'));
+      ok(`splitter (${label}): ${status === 200 ? 'nothing' : 'the failure'} written to the problem log`, status === 200 ? !logged : logged);
+      ok(`splitter (${label}): no script errors`, !p.errs.length, p.errs.join(' | ')); await ctx.close(); }
+    await bs.close(); }
+
   const md = `### UI checks (${results.length - fails}/${results.length} passed)\n\n${results.filter(r => !r[1]).map(r => `- ✗ ${r[0]}: ${r[2]}`).join('\n') || 'All passed.'}\n`;
   fs.writeFileSync(path.join(__dirname, 'out', 'ui.md'), md); if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md + '\n');
   console.log(`ui: ${results.length - fails}/${results.length} passed`); process.exitCode = fails ? 1 : 0;

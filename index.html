@@ -3,7 +3,7 @@
 <link rel="apple-touch-icon" href="/Voicing/voicing-icon-180.png?v=3"><link rel="apple-touch-icon" sizes="180x180" href="/Voicing/voicing-icon-180.png?v=3"><link rel="icon" type="image/png" href="/Voicing/favicon-32.png?v=3"><link rel="manifest" href="/Voicing/manifest.webmanifest?v=3"><meta name="theme-color" content="#eef1f3">
 <style>:root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
-<title>Voicing</title><meta name="voicing-version" content="1.5.0+a5a8f71">
+<title>Voicing</title><meta name="voicing-version" content="1.5.0+0e0d3ba">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=swap">
@@ -213,6 +213,9 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
 .field{display:flex;flex-direction:column;gap:6px}
 .field input{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;min-height:50px;width:100%;box-sizing:border-box}
 .field input:focus{outline:none;border-color:var(--brass)}
+.splitopt{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--line);border-radius:14px;font-size:15px;line-height:1.35}
+.splitopt input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--brass);flex:none}
+.splitopt small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
 .label em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:500}
 /* library */
 .liblist{display:flex;flex-direction:column;gap:10px}
@@ -298,9 +301,10 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
         <small>Play the song out loud near your phone</small>
       </div>
       <button class="quiet" id="demo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Or try the demo track</button>
+      <label class="splitopt" id="splitRow" hidden><input type="checkbox" id="splitOn"><span><b>Better with a full band</b><small>Sends the recording to Voicing's server to pull the guitar out first. Needs internet; the song isn't kept.</small></span></label>
       <p class="err" id="pickErr" hidden></p>
     </div>
-    <p class="ver"><span id="verTxt">Version 1.5.0+a5a8f71</span><button class="link" id="openLog" type="button">Problem log <span id="logN"></span></button></p>
+    <p class="ver"><span id="verTxt">Version 1.5.0+0e0d3ba</span><button class="link" id="openLog" type="button">Problem log <span id="logN"></span></button></p>
   </section>
 
 
@@ -442,7 +446,7 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
 
 <script>
 // problem log: keeps the last 30 errors on this phone (localStorage), never sends them anywhere
-const VERSION = '1.5.0+a5a8f71';
+const VERSION = '1.5.0+0e0d3ba';
 const LOG = { key: 'voicing.errors', read() { try { return JSON.parse(localStorage.getItem(this.key) || '[]'); } catch (e) { return []; } },
   add(kind, msg, extra) { try { const l = this.read(); l.push({ at: new Date().toISOString(), v: VERSION, kind, msg: String(msg || '').slice(0, 300), extra: extra ? String(extra).slice(0, 600) : undefined, ua: navigator.userAgent.slice(0, 120) });
     localStorage.setItem(this.key, JSON.stringify(l.slice(-30))); } catch (e) {} if (window.onLog) window.onLog(); },
@@ -538,9 +542,12 @@ function trackBeats(e, fps, bpm) {
 }
 
 // ---- main analysis ----
-async function analyze(x, onStep) {
+// opts.guitar: the guitar alone (from the splitter server). Tempo still comes from the full song, where the drums help;
+// chords, shapes and picked notes come from the guitar track.
+async function analyze(full, onStep, opts = {}) {
   onStep && onStep(0, 0); await sleep();
-  const { bpm, beats, perc, percLo } = tempo(x);
+  const T = tempo(full), { bpm, beats } = T, x = opts.guitar && opts.guitar.length > SR ? opts.guitar : full;
+  const percLo = x === full ? T.percLo : onsetEnv(x).percLo;
   onStep && onStep(1, 1); await sleep();
   const frames = Math.max(1, Math.floor((x.length - N) / HOP));
   const re = new Float32Array(N), im = new Float32Array(N), mag = new Float32Array(N / 2);
@@ -678,7 +685,7 @@ async function analyze(x, onStep) {
     // how much drum is in the mix: hi-hat/snare hiss above 5 kHz, and how much it pulses (flux), relative to the guitar
     const med = a => { const t = [...a].sort((x, y) => x - y); return t[t.length >> 1]; };
     let hfFlux = 0; for (let f = 1; f < frames; f++) hfFlux += Math.abs(Math.log((HF[f] + 1e-7) / (HF[f-1] + 1e-7))); hfFlux /= Math.max(1, frames - 1);
-    const drumInfo = { hf: perc, lf: percLo, hfFlux }; if (globalThis.DRUMDBG) DRUMDBG.push(drumInfo);
+    const drumInfo = { lf: percLo, hfFlux }; if (globalThis.DRUMDBG) DRUMDBG.push(drumInfo);
     // drums (a kick's short low thump) wreck the note model, so with drums in the mix use the overtone-rise test
     const FUSE = globalThis.L_FUSE ?? (percLo > +(globalThis.DRUM_T ?? 0.035) ? 'old' : 'act'), near = (a, b) => Math.abs(a.t - b.t) <= 0.1 && a.midi === b.midi;
     let cands, strumF;
@@ -1017,6 +1024,20 @@ function drawScribble(x) {
   pts.forEach((v, i) => { const xx = (i + .5) * 300 / n, a = v / mx * 19; d += ` L${xx.toFixed(1)},${(22 - a).toFixed(1)} L${(xx + 1.2).toFixed(1)},${(22 + a).toFixed(1)}`; });
   $('scribble').innerHTML = `<path class="s a draw" pathLength="1" style="--d:2.4s;stroke-width:1.4" d="${d}"/>`;
 }
+// ---------- optional guitar splitter (server); off unless SPLIT_URL is set and the switch is on ----------
+const SPLIT_URL = "";
+const splitOK = () => !!(globalThis.SPLIT_URL_TEST || SPLIT_URL);
+if (splitOK()) { $('splitRow').hidden = false; try { $('splitOn').checked = localStorage.getItem('voicing.split') === '1'; } catch (e) {} }
+$('splitOn').onchange = () => { try { localStorage.setItem('voicing.split', $('splitOn').checked ? '1' : '0'); } catch (e) {} };
+async function splitGuitar(x) {
+  const url = (globalThis.SPLIT_URL_TEST || SPLIT_URL).replace(/\/$/, '') + '/split', ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 120000);
+  try {
+    const r = await fetch(url, { method: 'POST', body: ENG.wav(x), headers: { 'Content-Type': 'audio/wav' }, signal: ctl.signal });
+    if (!r.ok) throw new Error('splitter HTTP ' + r.status);
+    const g = await decodeFile(await r.arrayBuffer());
+    return g.length > ENG.SR ? g : null;
+  } finally { clearTimeout(t); }
+}
 async function run(getSamples, meta) {
   cancelled = false; song = meta; $('pickErr').hidden = true;
   $('aCover').querySelectorAll('img,.ph').forEach(e => e.remove());
@@ -1028,7 +1049,13 @@ async function run(getSamples, meta) {
     const x = await getSamples(); if (cancelled) return;
     drawScribble(x);
     const t0 = performance.now();
-    const res = await ENG.analyze(x, i => { if (!cancelled) setStep(i); });
+    let guitar = null;
+    if (splitOK() && $('splitOn').checked && !meta.demo) {
+      $('steps').children[0].querySelector('span').textContent = 'Pulling the guitar out (online)';
+      try { guitar = await splitGuitar(x); } catch (e) { LOG.add('splitter', e.message); }
+      if (cancelled) return;
+    }
+    const res = await ENG.analyze(x, i => { if (!cancelled) setStep(i); }, { guitar });
     if (cancelled) return;
     if (!res.chords.length) throw new Error('nochords');
     await new Promise(r => setTimeout(r, Math.max(0, 1400 - (performance.now() - t0))));

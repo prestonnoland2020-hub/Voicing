@@ -85,9 +85,12 @@ function trackBeats(e, fps, bpm) {
 }
 
 // ---- main analysis ----
-async function analyze(x, onStep) {
+// opts.guitar: the guitar alone (from the splitter server). Tempo still comes from the full song, where the drums help;
+// chords, shapes and picked notes come from the guitar track.
+async function analyze(full, onStep, opts = {}) {
   onStep && onStep(0, 0); await sleep();
-  const { bpm, beats, perc, percLo } = tempo(x);
+  const T = tempo(full), { bpm, beats } = T, x = opts.guitar && opts.guitar.length > SR ? opts.guitar : full;
+  const percLo = x === full ? T.percLo : onsetEnv(x).percLo;
   onStep && onStep(1, 1); await sleep();
   const frames = Math.max(1, Math.floor((x.length - N) / HOP));
   const re = new Float32Array(N), im = new Float32Array(N), mag = new Float32Array(N / 2);
@@ -225,7 +228,7 @@ async function analyze(x, onStep) {
     // how much drum is in the mix: hi-hat/snare hiss above 5 kHz, and how much it pulses (flux), relative to the guitar
     const med = a => { const t = [...a].sort((x, y) => x - y); return t[t.length >> 1]; };
     let hfFlux = 0; for (let f = 1; f < frames; f++) hfFlux += Math.abs(Math.log((HF[f] + 1e-7) / (HF[f-1] + 1e-7))); hfFlux /= Math.max(1, frames - 1);
-    const drumInfo = { hf: perc, lf: percLo, hfFlux }; if (globalThis.DRUMDBG) DRUMDBG.push(drumInfo);
+    const drumInfo = { lf: percLo, hfFlux }; if (globalThis.DRUMDBG) DRUMDBG.push(drumInfo);
     // drums (a kick's short low thump) wreck the note model, so with drums in the mix use the overtone-rise test
     const FUSE = globalThis.L_FUSE ?? (percLo > +(globalThis.DRUM_T ?? 0.035) ? 'old' : 'act'), near = (a, b) => Math.abs(a.t - b.t) <= 0.1 && a.midi === b.midi;
     let cands, strumF;

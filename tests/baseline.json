@@ -44,6 +44,15 @@
   "lickF": 44.8,
   "tune": 100
  },
+ "tune/stem": {
+  "chord": 91.5,
+  "voicing": 87.9,
+  "capo": 100,
+  "tempo": 95,
+  "beatF": 98.4,
+  "lickF": 52.1,
+  "tune": 100
+ },
  "holdout/clean": {
   "chord": 94.3,
   "voicing": 97.2,
@@ -87,6 +96,15 @@
   "tempo": 100,
   "beatF": 100,
   "lickF": 35.4,
+  "tune": 100
+ },
+ "holdout/stem": {
+  "chord": 84.7,
+  "voicing": 69.5,
+  "capo": 81.3,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 59,
   "tune": 100
  }
 }
