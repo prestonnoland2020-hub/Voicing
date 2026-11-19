@@ -231,6 +231,34 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
 .empty svg{width:170px;height:auto}
 .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:11;transform:translate(-50%,12px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .25s;max-width:calc(100% - 32px);text-align:center}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+/* tuner */
+.top .pill + .pill{margin-left:0}
+.tune{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.gauge{width:100%;max-width:330px;height:auto;overflow:visible}
+.gauge .arc{fill:none;stroke:var(--line);stroke-width:2.2;stroke-linecap:round}
+.gauge .zone{fill:none;stroke:var(--ok);stroke-width:7;stroke-linecap:round;opacity:.28;transition:opacity .2s}
+.gauge .tk{stroke:var(--muted);stroke-width:1.4;stroke-linecap:round}
+.gauge .tk.big{stroke:var(--ink);stroke-width:2}
+.gauge .lbl{font-family:var(--mono);font-size:10.5px;fill:var(--muted)}
+.gauge .needle{transition:transform .12s linear;transform-origin:150px 168px}
+.gauge .needle line{stroke:var(--ink);stroke-width:3;stroke-linecap:round}
+.gauge .needle circle{fill:var(--brass)}
+.gauge.idle .needle line{stroke:var(--line)}
+.gauge.on .zone{opacity:.9}
+.gauge.on .needle line{stroke:var(--ok)}
+.tnote{font-family:var(--display);font-size:104px;line-height:.9;min-height:94px;color:var(--ink);transition:color .2s}
+.tnote sub{font-family:var(--mono);font-size:20px;vertical-align:baseline;color:var(--muted);margin-left:2px}
+.tnote.on{color:var(--ok)}
+.tread{font-weight:600;font-size:16px;min-height:22px}
+.tread.on{color:var(--ok)} .tread.lo,.tread.hi{color:var(--warn)}
+.thz{font-family:var(--mono);font-size:12px;color:var(--muted);min-height:16px}
+.tstr{display:flex;gap:8px;width:100%;max-width:360px}
+.tstr button{flex:1;min-width:0;height:56px;border:0;border-radius:16px;background:var(--surface);box-shadow:0 0 0 1px var(--line);color:var(--ink);font-family:var(--display);font-size:26px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:box-shadow .15s,background .15s,transform .12s}
+.tstr button small{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.tstr button:active{transform:scale(.95)}
+.tstr button.cur{box-shadow:0 0 0 2px var(--brass) inset;background:var(--brass-soft)}
+.tstr button.ok{box-shadow:0 0 0 2px var(--ok) inset}
+@media (prefers-reduced-motion: reduce){ .gauge .needle{transition:none} }
 @media (prefers-reduced-motion: reduce){ .lrow,.sheet-card{animation:none} .pill.saved .ic path{animation:none;stroke-dashoffset:0} }
 @media (prefers-reduced-motion: reduce){ .ripples svg{animation:none;opacity:.3;transform:scale(1)} .mic{animation:none} .draw{animation:none;stroke-dashoffset:0} .pop{animation:none;transform:none} .steps li.done .tick{animation:none;stroke-dashoffset:0} }
 </style>
@@ -244,7 +272,7 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
 
   <!-- 1. Pick -->
   <section class="screen" id="s-pick">
-    <div class="top"><span class="brand">Voicing</span><button class="pill right" id="openLib" aria-label="Your library"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5h4v15H4zM10 4.5h4v15h-4zM15.6 5.6l3.5-.9 3.2 14.1-3.5.9z"/></svg>Library <span class="n" id="libCount">0</span></button></div>
+    <div class="top"><span class="brand">Voicing</span><button class="pill right" id="openTune" aria-label="Guitar tuner"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v7a3 3 0 0 0 6 0V3M12 13v8M9 21h6"/></svg>Tuner</button><button class="pill" id="openLib" aria-label="Your library"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5h4v15H4zM10 4.5h4v15h-4zM15.6 5.6l3.5-.9 3.2 14.1-3.5.9z"/></svg>Library <span class="n" id="libCount">0</span></button></div>
     <div class="hero">
       <svg class="sketch" viewBox="0 0 310 120" filter="url(#boil)" aria-hidden="true">
         <path class="s draw" pathLength="1" style="--d:1.6s" d="M55,18 C25,18 12,40 12,60 C12,82 26,102 55,102 C75,102 84,92 92,88 C100,92 108,96 125,94 C146,92 157,78 157,60 C157,42 146,28 125,26 C108,24 100,28 92,32 C84,28 75,18 55,18 Z"/>
@@ -271,6 +299,22 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
     </div>
   </section>
 
+
+  <!-- Tuner -->
+  <section class="screen" id="s-tune" hidden>
+    <div class="top"><button class="back" data-back="pick"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Back</button><span class="label" style="margin-left:auto">Standard · A440</span></div>
+    <div class="tune">
+      <svg class="gauge idle" id="tGauge" viewBox="0 0 300 186" aria-hidden="true"></svg>
+      <div class="tnote" id="tNote">–</div>
+      <div class="tread" id="tRead">Play one string</div>
+      <div class="thz" id="tHz">&nbsp;</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div class="tstr" id="tStr"></div>
+      <p class="muted" style="font-size:13px;margin:0">Tap a string to hear its note.</p>
+      <p class="err" id="tErr" hidden></p>
+    </div>
+  </section>
   <!-- 1b. Live listening -->
   <section class="screen" id="s-rec" hidden>
     <div class="top"><button class="back" data-back="pick"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Cancel</button></div>
@@ -770,9 +814,9 @@ function strum(sh) {
 }
 
 // ---------- navigation ----------
-const SCREENS = ['pick', 'rec', 'listen', 'lesson', 'along', 'lib'];
+const SCREENS = ['pick', 'rec', 'listen', 'lesson', 'along', 'lib', 'tune'];
 let cancelled = false;
-function show(id) { SCREENS.forEach(s => $('s-' + s).hidden = s !== id); scrollTo(0, 0); if (id !== 'along') pause(); if (id !== 'rec') stopMic(); }
+function show(id) { SCREENS.forEach(s => $('s-' + s).hidden = s !== id); scrollTo(0, 0); if (id !== 'along') pause(); if (id !== 'rec') stopMic(); if (id !== 'tune') stopTuner(); }
 document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => { if (b.dataset.back === 'pick') cancelled = true; if (b.dataset.back === 'lib') renderLib(); show(b.dataset.back); });
 
 // ---------- analyze flow ----------
@@ -876,6 +920,84 @@ $('demo').onclick = () => {
       { title: 'Demo strum', artist: 'Acoustic guitar, made in your browser', coverUrl: null, demo: true });
 };
 
+
+// ---------- tuner ----------
+const T_STR = [40, 45, 50, 55, 59, 64], T_NAMES = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+var tun = null;
+(function buildGauge() {
+  const cx = 150, cy = 168, r = 140, P = c => { const a = (c / 50) * 62 * Math.PI / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
+  const arc = (c0, c1, rr) => { const a0 = (c0 / 50) * 62 * Math.PI / 180, a1 = (c1 / 50) * 62 * Math.PI / 180; return `M${(cx + rr * Math.sin(a0)).toFixed(1)},${(cy - rr * Math.cos(a0)).toFixed(1)} A${rr},${rr} 0 0,1 ${(cx + rr * Math.sin(a1)).toFixed(1)},${(cy - rr * Math.cos(a1)).toFixed(1)}`; };
+  let g = `<g filter="url(#rough)"><path class="arc" d="${arc(-50, 50, r)}"/><path class="zone" d="${arc(-5, 5, r)}"/>`;
+  for (let c = -50; c <= 50; c += 10) { const a = (c / 50) * 62 * Math.PI / 180, big = c % 50 === 0 || c === 0, r1 = r - (big ? 16 : 9); g += `<line class="tk${big ? ' big' : ''}" x1="${(cx + r1 * Math.sin(a)).toFixed(1)}" y1="${(cy - r1 * Math.cos(a)).toFixed(1)}" x2="${(cx + (r - 2) * Math.sin(a)).toFixed(1)}" y2="${(cy - (r - 2) * Math.cos(a)).toFixed(1)}"/>`; }
+  const [lx, ly] = P(-50), [rx, ry] = P(50);
+  g += `</g><text class="lbl" x="${lx - 4}" y="${ly + 18}" text-anchor="middle">♭</text><text class="lbl" x="${rx + 4}" y="${ry + 18}" text-anchor="middle">♯</text>`;
+  g += `<g class="needle" id="tNeedle"><line x1="150" y1="168" x2="150" y2="40"/><circle cx="150" cy="168" r="7"/></g>`;
+  $('tGauge').innerHTML = g;
+  $('tStr').innerHTML = T_STR.map((m, i) => `<button data-m="${m}" aria-label="Play ${T_NAMES[m % 12]}${Math.floor(m / 12) - 1}">${i === 5 ? 'e' : T_NAMES[m % 12]}<small>${Math.floor(m / 12) - 1}</small></button>`).join('');
+})();
+$('tStr').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  try {
+    const C = window.AudioContext || window.webkitAudioContext, ac = tun ? tun.ctx : (window._tPlay = window._tPlay || new C()); ac.resume && ac.resume();
+    const hz = 440 * Math.pow(2, (+b.dataset.m - 69) / 12), len = Math.floor(ac.sampleRate * 2.4), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0), per = Math.round(ac.sampleRate / hz);
+    for (let k = 0; k < per; k++) d[k] = Math.random() * 2 - 1; for (let k = per; k < len; k++) d[k] = (d[k - per] + d[k - per + 1]) * .4992;
+    const src = ac.createBufferSource(), g = ac.createGain(); src.buffer = buf; g.gain.value = .22; src.connect(g).connect(ac.destination); src.start();
+    if (tun) tun.mute = performance.now() + 1600;
+  } catch (er) {}
+};
+function stopTuner() { if (!tun) return; cancelAnimationFrame(tun.raf); tun.stream.getTracks().forEach(t => t.stop()); try { tun.ctx.close(); } catch (e) {} tun = null; }
+function tunerReset(msg) { $('tGauge').setAttribute('class', 'gauge idle'); $('tNeedle').style.transform = 'rotate(0deg)'; $('tNote').innerHTML = '–'; $('tNote').className = 'tnote'; $('tRead').textContent = msg || 'Play one string'; $('tRead').className = 'tread'; $('tHz').innerHTML = '&nbsp;'; [...$('tStr').children].forEach(b => b.className = ''); }
+// YIN pitch detection on a (downsampled) frame; returns Hz or 0
+function yinPitch(x, sr) {
+  const W = x.length >> 1, tMin = Math.floor(sr / 1100), tMax = Math.min(W - 2, Math.ceil(sr / 60)), d = new Float32Array(tMax + 2);
+  for (let tau = 1; tau <= tMax + 1; tau++) { let s = 0; for (let i = 0; i < W; i++) { const v = x[i] - x[i + tau]; s += v * v; } d[tau] = s; }
+  let run = 0; d[0] = 1; for (let tau = 1; tau <= tMax + 1; tau++) { run += d[tau]; d[tau] = run ? d[tau] * tau / run : 1; }
+  let tau = -1; for (let t = tMin; t <= tMax; t++) if (d[t] < 0.15) { while (t + 1 <= tMax && d[t + 1] < d[t]) t++; tau = t; break; }
+  if (tau < 0) return 0;
+  const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a - 2 * b + c, sh = den ? (a - c) / (2 * den) : 0;
+  return sr / (tau + Math.max(-1, Math.min(1, sh)));
+}
+$('openTune').onclick = async () => {
+  show('tune'); tunerReset(); $('tErr').hidden = true;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return tunerFail();
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); } catch (e) { return tunerFail(e && e.name); }
+  if ($('s-tune').hidden) { stream.getTracks().forEach(t => t.stop()); return; }
+  const C = window.AudioContext || window.webkitAudioContext, ctx = new C(); try { await ctx.resume(); } catch (e) {}
+  const src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 4096; src.connect(an);
+  const ds = ctx.sampleRate >= 44000 ? 2 : 1;
+  tun = { stream, ctx, an, buf: new Float32Array(4096), x: new Float32Array(4096 / ds), ds, sr: ctx.sampleRate / ds, hist: [], cents: 0, note: -1, last: 0, mute: 0, raf: 0, tick: 0 };
+  $('tRead').textContent = 'Listening. Play one string.'; tunerFrame();
+};
+function tunerFail(name) {
+  $('tErr').hidden = false; tunerReset('Microphone needed');
+  $('tErr').textContent = name === 'NotAllowedError' ? 'Microphone access is off. Turn it on for this site in your browser settings, then open the tuner again.' : "The microphone couldn't start here. Open Voicing as its own app and try again.";
+}
+function tunerFrame() {
+  if (!tun) return; tun.raf = requestAnimationFrame(tunerFrame);
+  if ((tun.tick++ & 1) || performance.now() < tun.mute) return;
+  tun.an.getFloatTimeDomainData(tun.buf);
+  let rms = 0; for (let i = 0; i < tun.buf.length; i++) rms += tun.buf[i] * tun.buf[i]; rms = Math.sqrt(rms / tun.buf.length);
+  const now = performance.now();
+  if (rms < 0.006) { if (now - tun.last > 1400 && tun.note >= 0) { tun.note = -1; tun.hist = []; tunerReset('Listening. Play one string.'); } return; }
+  const x = tun.x; for (let i = 0; i < x.length; i++) x[i] = tun.ds === 2 ? (tun.buf[2 * i] + tun.buf[2 * i + 1]) / 2 : tun.buf[i];
+  const hz = yinPitch(x, tun.sr); if (!hz || hz < 60 || hz > 1100) return;
+  const midiF = 69 + 12 * Math.log2(hz / 440);
+  tun.hist.push(midiF); if (tun.hist.length > 5) tun.hist.shift();
+  const sorted = [...tun.hist].sort((a, b) => a - b), med = sorted[sorted.length >> 1];
+  if (Math.abs(midiF - med) > 0.6) return;            // ignore octave jumps / glitches
+  const note = Math.round(med), cents = (med - note) * 100;
+  tun.cents = tun.note === note ? tun.cents * 0.6 + cents * 0.4 : cents; tun.note = note; tun.last = now;
+  const c = Math.max(-50, Math.min(50, tun.cents)), on = Math.abs(tun.cents) <= 5;
+  $('tNeedle').style.transform = `rotate(${(c / 50 * 62).toFixed(1)}deg)`;
+  $('tGauge').setAttribute('class', 'gauge' + (on ? ' on' : ''));
+  $('tNote').innerHTML = `${T_NAMES[((note % 12) + 12) % 12]}<sub>${Math.floor(note / 12) - 1}</sub>`; $('tNote').className = 'tnote' + (on ? ' on' : '');
+  const r = Math.round(tun.cents);
+  $('tRead').textContent = on ? 'In tune' : r < 0 ? `${-r} cents flat. Tighten.` : `${r} cents sharp. Loosen.`;
+  $('tRead').className = 'tread ' + (on ? 'on' : r < 0 ? 'lo' : 'hi');
+  $('tHz').textContent = hz.toFixed(1) + ' Hz';
+  let best = -1, bd = 99; T_STR.forEach((m, i) => { const dd = Math.abs(med - m); if (dd < bd) { bd = dd; best = i; } });
+  [...$('tStr').children].forEach((b, i) => b.className = i === best && bd < 2.5 ? (on && note === T_STR[i] ? 'ok' : 'cur') : '');
+}
 // ---------- lesson ----------
 let result = null, version = 'studio';
 const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
