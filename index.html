@@ -200,7 +200,7 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
 .legend{display:flex;gap:16px;font-size:12.5px;color:var(--muted);padding:0 2px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{font-style:normal;font-family:var(--mono);font-weight:500;font-size:13px}
-.tabsheet.live{padding:4px 6px 0}
+.tabsheet.strip{padding:4px 6px 0}
 /* save sheet */
 .sheet{position:fixed;inset:0;z-index:10;background:rgba(10,14,16,.45);display:flex;align-items:flex-end;justify-content:center;padding:0 10px}
 .sheet[hidden]{display:none}
@@ -338,7 +338,7 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
       <div class="beats" id="beats" aria-label="Beat"><i></i><i></i><i></i><i></i></div>
     </div>
     <div class="lane" id="lane"></div>
-    <div class="tabsheet live" id="alongTab"></div>
+    <div class="tabsheet strip" id="alongTab"></div>
     <div><div class="bar"><span id="prog"></span></div><div class="time" style="margin-top:6px"><span id="tNow">0:00</span><span id="tEnd">0:00</span></div></div>
     <div class="controls">
       <button class="play" id="toggle" aria-label="Play"></button>
