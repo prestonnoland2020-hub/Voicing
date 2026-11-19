@@ -4,7 +4,15 @@
 const path = require('path'), fs = require('fs'), os = require('os');
 const { chromium } = require(process.env.PW_PATH || 'playwright-core');
 const ENG = require('../src/engine.js'), { writeWav } = require('./wav.js');
-const ROOT = path.join(__dirname, '..'), OUT = path.join(__dirname, 'out', 'shots'), URL0 = 'file://' + path.join(ROOT, 'index.html');
+const ROOT = path.join(__dirname, '..'), OUT = path.join(__dirname, 'out', 'shots'); let URL0 = '';
+// serve the repo at /Voicing/ on a local port, the way GitHub Pages does, so the icon and manifest links resolve
+const TYPES = { '.html': 'text/html', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.js': 'text/javascript' };
+const serve = () => new Promise(res => { const srv = require('http').createServer((q, r) => {
+  const u = decodeURIComponent(q.url.split('?')[0]); if (!u.startsWith('/Voicing/')) { r.writeHead(404); return r.end(); }
+  const f = path.join(ROOT, path.normalize(u.slice(9) || 'index.html').replace(/^(\.\.[\/\\])+/, '')), g = fs.existsSync(f) && fs.statSync(f).isDirectory() ? path.join(f, 'index.html') : f;
+  if (!g.startsWith(ROOT) || !fs.existsSync(g)) { r.writeHead(404); return r.end(); }
+  r.writeHead(200, { 'Content-Type': TYPES[path.extname(g)] || 'application/octet-stream' }); fs.createReadStream(g).pipe(r); });
+  srv.listen(0, '127.0.0.1', () => { URL0 = `http://127.0.0.1:${srv.address().port}/Voicing/`; res(srv); }); });
 fs.mkdirSync(OUT, { recursive: true });
 const PHONES = [['iPhone SE', 375, 667], ['iPhone 15', 393, 852], ['iPhone 15 Pro Max', 430, 932]];
 const results = []; let fails = 0;
@@ -38,6 +46,13 @@ const tone = (midi, cents, secs, sr = 48000) => { const hz = 440 * Math.pow(2, (
 
 const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7), run = k => !ONLY || ONLY.split(',').includes(k);
 (async () => {
+  const srv = await serve();
+  // Home Screen icon and manifest: every icon the page and manifest name has to load
+  { const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), base = new URL(URL0).origin;
+    const links = [...html.matchAll(/<link[^>]+rel="(?:apple-touch-icon|icon|manifest)"[^>]+href="([^"]+)"/g)].map(m => m[1]);
+    const man = links.find(l => /manifest/.test(l)), icons = man ? JSON.parse(await (await fetch(base + man)).text()).icons.map(i => '/Voicing/' + i.src.replace(/^\/?Voicing\//, '').replace(/^\.\//, '')) : [];
+    const bad = []; for (const l of [...links, ...icons]) { const r = await fetch(new URL(l, URL0)); if (r.status !== 200) bad.push(`${l} (${r.status})`); }
+    ok('Home Screen icons and manifest all load', links.length >= 3 && icons.length >= 2 && !bad.length, bad.join(', ') || `${links.length} links, ${icons.length} manifest icons`); }
   // 1) every screen, every phone size, the full tap-through
   if (run('screens')) { const b = await launch();
   for (const phone of PHONES) { const p = await page(b, phone);
@@ -129,5 +144,5 @@ const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7), r
 
   const md = `### UI checks (${results.length - fails}/${results.length} passed)\n\n${results.filter(r => !r[1]).map(r => `- ✗ ${r[0]}: ${r[2]}`).join('\n') || 'All passed.'}\n`;
   fs.writeFileSync(path.join(__dirname, 'out', 'ui.md'), md); if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md + '\n');
-  console.log(`ui: ${results.length - fails}/${results.length} passed`); process.exitCode = fails ? 1 : 0;
+  console.log(`ui: ${results.length - fails}/${results.length} passed`); process.exitCode = fails ? 1 : 0; srv.close();
 })().catch(e => { console.error(e); process.exitCode = 1; });
