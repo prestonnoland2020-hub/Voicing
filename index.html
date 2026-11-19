@@ -3,7 +3,7 @@
 <link rel="apple-touch-icon" href="/Voicing/voicing-icon-180.png?v=3"><link rel="apple-touch-icon" sizes="180x180" href="/Voicing/voicing-icon-180.png?v=3"><link rel="icon" type="image/png" href="/Voicing/favicon-32.png?v=3"><link rel="manifest" href="/Voicing/manifest.webmanifest?v=3"><meta name="theme-color" content="#eef1f3">
 <style>:root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
-<title>Voicing</title><meta name="voicing-version" content="1.5.0+48a22b4">
+<title>Voicing</title><meta name="voicing-version" content="1.5.0+afb1d2e">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=swap">
@@ -304,7 +304,7 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
       <label class="splitopt" id="splitRow" hidden><input type="checkbox" id="splitOn"><span><b>Better with a full band</b><small>Sends the recording to Voicing's server to pull the guitar out first. Needs internet; the song isn't kept.</small></span></label>
       <p class="err" id="pickErr" hidden></p>
     </div>
-    <p class="ver"><span id="verTxt">Version 1.5.0+48a22b4</span><button class="link" id="openLog" type="button">Problem log <span id="logN"></span></button></p>
+    <p class="ver"><span id="verTxt">Version 1.5.0+afb1d2e</span><button class="link" id="openLog" type="button">Problem log <span id="logN"></span></button></p>
   </section>
 
 
@@ -446,7 +446,7 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
 
 <script>
 // problem log: keeps the last 30 errors on this phone (localStorage), never sends them anywhere
-const VERSION = '1.5.0+48a22b4';
+const VERSION = '1.5.0+afb1d2e';
 const LOG = { key: 'voicing.errors', read() { try { return JSON.parse(localStorage.getItem(this.key) || '[]'); } catch (e) { return []; } },
   add(kind, msg, extra) { try { const l = this.read(); l.push({ at: new Date().toISOString(), v: VERSION, kind, msg: String(msg || '').slice(0, 300), extra: extra ? String(extra).slice(0, 600) : undefined, ua: navigator.userAgent.slice(0, 120) });
     localStorage.setItem(this.key, JSON.stringify(l.slice(-30))); } catch (e) {} if (window.onLog) window.onLog(); },
@@ -693,6 +693,10 @@ async function analyze(full, onStep, opts = {}) {
     else if (FUSE === 'and') { cands = candsA.filter(a => candsB.some(b => near(a, b))); strumF = strumA.concat(strumB); }
     else if (FUSE === 'or') { cands = candsA.concat(candsB.filter(b => !candsA.some(a => near(a, b)))).sort((a, b) => a.t - b.t); strumF = strumA.filter(f => strumB.includes(f)); }
     else { cands = candsA; strumF = strumA; }
+    const LDEC = +(globalThis.L_DEC ?? 0); // off: helped the tuning set, hurt held-out songs (overfit)
+    // a plucked note fades; a sung note holds (or swells). Drop notes still as loud a moment later.
+    if (LDEC) { const DF = +(globalThis.L_DF ?? 5), lv = (f, b) => { let v = 0; for (const h of [0, 12]) if (b + h < NB && f < frames) v += P[f*NB+b+h]; return v; };
+      cands = cands.filter(c => { const b = c.midi - LO, B0 = +(globalThis.L_B ?? 2), f2 = Math.min(frames - 1, c.f + DF), v0 = Math.max(...Array.from({ length: B0 + 1 }, (_, k) => lv(Math.min(frames - 1, c.f + k), b))); return !(v0 > 0 && lv(f2, b) / v0 > LDEC); }); }
     // a lick is a run of picked notes; a lone "note" between strums is usually a strum or a ringing string
     const RUN = +(globalThis.LICK_RUN || 3), GAP = +(globalThis.LICK_GAP || 1.0);
     for (let i = 0; i < cands.length;) {

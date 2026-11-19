@@ -236,6 +236,10 @@ async function analyze(full, onStep, opts = {}) {
     else if (FUSE === 'and') { cands = candsA.filter(a => candsB.some(b => near(a, b))); strumF = strumA.concat(strumB); }
     else if (FUSE === 'or') { cands = candsA.concat(candsB.filter(b => !candsA.some(a => near(a, b)))).sort((a, b) => a.t - b.t); strumF = strumA.filter(f => strumB.includes(f)); }
     else { cands = candsA; strumF = strumA; }
+    const LDEC = +(globalThis.L_DEC ?? 0); // off: helped the tuning set, hurt held-out songs (overfit)
+    // a plucked note fades; a sung note holds (or swells). Drop notes still as loud a moment later.
+    if (LDEC) { const DF = +(globalThis.L_DF ?? 5), lv = (f, b) => { let v = 0; for (const h of [0, 12]) if (b + h < NB && f < frames) v += P[f*NB+b+h]; return v; };
+      cands = cands.filter(c => { const b = c.midi - LO, B0 = +(globalThis.L_B ?? 2), f2 = Math.min(frames - 1, c.f + DF), v0 = Math.max(...Array.from({ length: B0 + 1 }, (_, k) => lv(Math.min(frames - 1, c.f + k), b))); return !(v0 > 0 && lv(f2, b) / v0 > LDEC); }); }
     // a lick is a run of picked notes; a lone "note" between strums is usually a strum or a ringing string
     const RUN = +(globalThis.LICK_RUN || 3), GAP = +(globalThis.LICK_GAP || 1.0);
     for (let i = 0; i < cands.length;) {
