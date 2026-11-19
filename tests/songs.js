@@ -72,10 +72,29 @@ function render(song, mix, seed = 1) {
       if (k === 2 || k === 6) { const n = Math.floor(0.18 * SR), buf = new Float32Array(n); let lp = 0; for (let j = 0; j < n; j++) { const t = j / SR, w = rnd() * 2 - 1; lp += (w - lp) * 0.5; buf[j] = (lp * 0.8 + Math.sin(2 * Math.PI * 190 * t) * 0.4) * Math.exp(-t * 22); } add(buf, st, mix.drums); }
       { const n = Math.floor(0.05 * SR), buf = new Float32Array(n); let pw = 0; for (let j = 0; j < n; j++) { const w = rnd() * 2 - 1; buf[j] = (w - pw) * Math.exp(-j / SR * 80); pw = w; } add(buf, st, mix.drums * 0.35); } }
   }
+  if (mix.vocal) sing(out, truth, song, beat, tuneK, rnd, mix.vocal);
   if (mix.noise) for (let i = 0; i < len; i++) out[i] += (rnd() * 2 - 1) * mix.noise;
   if (mix.room) { const d = Math.floor(0.031 * SR), d2 = Math.floor(0.047 * SR); for (let i = len - 1; i >= d2; i--) out[i] += out[i - d] * 0.35 + out[i - d2] * 0.25; let lp = 0; for (let i = 0; i < len; i++) { lp += (out[i] - lp) * 0.55; out[i] = lp; } }
   let pk = 0; for (let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(out[i])); for (let i = 0; i < len; i++) out[i] *= 0.9 / pk;
   return { x: out, truth };
+}
+// a sung melody: chord tones with some passing notes, legato with glides and vibrato, an "ah" vowel (formants near 700 and 1150 Hz),
+// rests at phrase ends. Real songs have this on top of the guitar, often louder than it.
+const SCALE = [0, 2, 4, 5, 7, 9, 11];
+function sing(out, truth, song, beat, tuneK, rnd, gain) {
+  const len = out.length, notes = [];
+  for (const c of truth.chords) { const tones = (c.fam === 'min' || c.fam === 'm7' ? [0, 3, 7] : [0, 4, 7]).map(v => (c.root + v) % 12);
+    for (let t = c.t; t < c.end - 1e-6; t += beat) { if (rnd() < 0.18) continue; // breaths
+      let pc = tones[Math.floor(rnd() * 3)]; if (rnd() < 0.25) pc = (truth.chords[0].root + SCALE[Math.floor(rnd() * 7)]) % 12; // passing note in the key
+      let m = 57 + ((pc - 9 + 12) % 12); if (m < 60 && rnd() < 0.5) m += 12; notes.push([t, rnd() < 0.3 ? beat * 2 : beat, m]); } }
+  const form = f => 1 / (1 + Math.pow((f - 700) / 160, 2)) + 0.7 / (1 + Math.pow((f - 1150) / 180, 2)) + 0.25 / (1 + Math.pow((f - 2600) / 300, 2)) + 0.04;
+  let ph = 0, prevHz = 0;
+  for (const [t, d, m] of notes) { const hz = 440 * Math.pow(2, (m - 69) / 12) * tuneK, st = Math.floor(t * SR), n = Math.floor(d * SR * 0.95);
+    const H = Math.floor(4000 / hz), amp = []; for (let h = 1; h <= H; h++) amp.push(form(h * hz) / h); const norm = amp.reduce((a, b) => a + b, 0);
+    for (let k = 0; k < n && st + k < len; k++) { const tt = k / SR, glide = prevHz && tt < 0.06 ? prevHz + (hz - prevHz) * tt / 0.06 : hz, vib = tt > 0.2 ? Math.pow(2, 0.3 * Math.sin(2 * Math.PI * 5.5 * tt) / 12) : 1;
+      ph += 2 * Math.PI * glide * vib / SR; let v = 0; for (let h = 0; h < H; h++) v += amp[h] * Math.sin(ph * (h + 1));
+      const env = Math.min(1, k / 600) * Math.min(1, (n - k) / 900); out[st + k] += gain * env * v / norm * 1.6; }
+    prevHz = hz; }
 }
 const MIXES = {
   clean: { jitter: 0.01 },
@@ -84,6 +103,8 @@ const MIXES = {
   real: { jitter: 0.012, real: 'rotate' },            // real recorded guitar notes: acoustic, nylon or electric
   realband: { jitter: 0.015, real: 'rotate', bass: 0.35, drums: 0.5, noise: 0.01, room: 1 },
   // the full band song, plus the guitar as a splitter would hand it back: guitar with a little drum and bass bleed
+  // a full song played out of a speaker into the phone: real guitar, bass, drums and a singer
+  song: { jitter: 0.015, real: 'rotate', bass: 0.35, drums: 0.5, vocal: 0.35, noise: 0.012, room: 1 },
   stem: { jitter: 0.015, real: 'rotate', bass: 0.35, drums: 0.5, noise: 0.01, room: 1, stem: { bass: 0.35 * 0.12, drums: 0.5 * 0.15, noise: 0.004 } },
 };
 module.exports = { SONGS, MIXES, render, SR, OPEN, PC };

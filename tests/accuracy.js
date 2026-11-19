@@ -7,6 +7,7 @@ const BARS = { // pass bars per mix
   phone: { chord: 0.80, voicing: 0.55, capo: 0.6, tempo: 0.85, beatF: 0.70, lickF: 0.55, tune: 1 },
   real:  { chord: 0.88, voicing: 0.70, capo: 0.85, tempo: 0.95, beatF: 0.85, lickF: 0.70, tune: 0.9 },
   stem: { chord: 0.88, voicing: 0.70, capo: 0.85, tempo: 0.95, beatF: 0.85, lickF: 0.70, tune: 0.9 },
+  song: { chord: 0.80, voicing: 0.55, capo: 0.6, tempo: 0.85, beatF: 0.70, lickF: 0.45, tune: 0.9 },
   realband: { chord: 0.80, voicing: 0.55, capo: 0.6, tempo: 0.85, beatF: 0.70, lickF: 0.50, tune: 0.85 },
 };
 const parse = name => { const m = name.match(/^([A-G](?:#|b)?)(.*)$/); return { root: ENG.NOTE.indexOf(m[1]), fam: /^m(?!aj)/.test(m[2]) ? 'min' : 'maj' }; };

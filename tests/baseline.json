@@ -1,7 +1,7 @@
 {
  "tune/clean": {
-  "chord": 96.9,
-  "voicing": 92,
+  "chord": 96.5,
+  "voicing": 91.7,
   "capo": 100,
   "tempo": 100,
   "beatF": 100,
@@ -9,8 +9,8 @@
   "tune": 100
  },
  "tune/band": {
-  "chord": 91,
-  "voicing": 78.4,
+  "chord": 92.1,
+  "voicing": 79.2,
   "capo": 90,
   "tempo": 95,
   "beatF": 98.4,
@@ -18,8 +18,8 @@
   "tune": 100
  },
  "tune/phone": {
-  "chord": 85.2,
-  "voicing": 63.7,
+  "chord": 88.2,
+  "voicing": 66.1,
   "capo": 80,
   "tempo": 100,
   "beatF": 100,
@@ -27,7 +27,7 @@
   "tune": 100
  },
  "tune/real": {
-  "chord": 90,
+  "chord": 89.6,
   "voicing": 88.2,
   "capo": 100,
   "tempo": 85,
@@ -36,7 +36,7 @@
   "tune": 100
  },
  "tune/realband": {
-  "chord": 92.2,
+  "chord": 93,
   "voicing": 81.5,
   "capo": 95,
   "tempo": 95,
@@ -44,9 +44,18 @@
   "lickF": 44.8,
   "tune": 100
  },
+ "tune/song": {
+  "chord": 88.7,
+  "voicing": 80.4,
+  "capo": 95,
+  "tempo": 95,
+  "beatF": 98.4,
+  "lickF": 12.8,
+  "tune": 100
+ },
  "tune/stem": {
-  "chord": 91.5,
-  "voicing": 87.9,
+  "chord": 92.2,
+  "voicing": 88.7,
   "capo": 100,
   "tempo": 95,
   "beatF": 98.4,
@@ -54,7 +63,7 @@
   "tune": 100
  },
  "holdout/clean": {
-  "chord": 94.3,
+  "chord": 94.2,
   "voicing": 97.2,
   "capo": 100,
   "tempo": 100,
@@ -63,8 +72,8 @@
   "tune": 100
  },
  "holdout/band": {
-  "chord": 91.7,
-  "voicing": 71.9,
+  "chord": 93.2,
+  "voicing": 72.4,
   "capo": 81.3,
   "tempo": 100,
   "beatF": 100,
@@ -72,8 +81,8 @@
   "tune": 100
  },
  "holdout/phone": {
-  "chord": 87,
-  "voicing": 64.5,
+  "chord": 89.4,
+  "voicing": 66.6,
   "capo": 75,
   "tempo": 100,
   "beatF": 100,
@@ -81,26 +90,35 @@
   "tune": 100
  },
  "holdout/real": {
-  "chord": 87.8,
-  "voicing": 70.6,
-  "capo": 75,
+  "chord": 86.6,
+  "voicing": 76.2,
+  "capo": 87.5,
   "tempo": 100,
   "beatF": 100,
   "lickF": 67.3,
   "tune": 100
  },
  "holdout/realband": {
-  "chord": 86.1,
-  "voicing": 68.3,
+  "chord": 91.1,
+  "voicing": 71.4,
   "capo": 81.3,
   "tempo": 100,
   "beatF": 100,
   "lickF": 35.4,
   "tune": 100
  },
+ "holdout/song": {
+  "chord": 86.2,
+  "voicing": 70.6,
+  "capo": 81.3,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 21.7,
+  "tune": 100
+ },
  "holdout/stem": {
-  "chord": 84.7,
-  "voicing": 69.5,
+  "chord": 88.2,
+  "voicing": 76,
   "capo": 81.3,
   "tempo": 100,
   "beatF": 100,

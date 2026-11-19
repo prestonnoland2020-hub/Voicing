@@ -253,13 +253,19 @@ async function analyze(full, onStep, opts = {}) {
   const S = labels.length, emit = new Float32Array(frames * (S + 1));
   const tmpl = labels.map(({ r, q }) => { const t = new Float32Array(12); QUAL[q].forEach((iv, i) => t[(r + iv) % 12] = i === 0 ? 1 : 0.85); return t; });
   const tn = tmpl.map(t => Math.hypot(...t));
+  const BW = +(globalThis.B_W ?? 0.1), BN = +(globalThis.B_N ?? 12);
+  const CA = +(globalThis.C_A ?? 0), CK = +(globalThis.C_K ?? 20), CS = +(globalThis.C_S ?? 1);
   for (let f = 0; f < frames; f++) {
     const ch = new Float32Array(12);
-    for (let b = 0; b < NB; b++) ch[(LO + b) % 12] += P[f*NB+b] * (b < 24 ? 1.15 : 1);
+    for (let b = 0; b < NB; b++) ch[(LO + b) % 12] += P[f*NB+b] * (b < 24 ? 1.15 : 1) * (1 - CA);
+    // the note model folds each note's overtones back onto the note, so a singer's overtones don't read as extra chord tones
+    if (CA) { let am = 1e-9; for (let b = 0; b < NB; b++) am = Math.max(am, A[f*NB+b]); for (let b = 0; b < NB; b++) ch[(LO + b) % 12] += CA * Math.log(1 + CK * A[f*NB+b] / am) * (b < 24 ? 1.15 : 1) * CS; }
     let mean = 0; for (let i = 0; i < 12; i++) mean += ch[i]; mean /= 12;
     for (let i = 0; i < 12; i++) ch[i] = Math.max(0, ch[i] - mean * 0.6);
     const cn = Math.hypot(...ch) || 1e-9;
-    for (let s = 0; s < S; s++) { let d = 0; for (let i = 0; i < 12; i++) d += ch[i] * tmpl[s][i]; emit[f*(S+1)+s] = d / cn / tn[s] - (labels[s].q.length > 2 || labels[s].q === '7' ? 0.035 : 0); }
+    // the lowest notes (bass guitar's overtones, the guitar's low strings) usually carry the root; a singer sits above them
+    const bc = new Float32Array(12); if (BW) { for (let b = 0; b < BN; b++) bc[(LO + b) % 12] = Math.max(bc[(LO + b) % 12], P[f*NB+b]); let bm = 1e-9; for (let i = 0; i < 12; i++) bm = Math.max(bm, bc[i]); for (let i = 0; i < 12; i++) bc[i] /= bm; }
+    for (let s = 0; s < S; s++) { let d = 0; for (let i = 0; i < 12; i++) d += ch[i] * tmpl[s][i]; emit[f*(S+1)+s] = d / cn / tn[s] - (labels[s].q.length > 2 || labels[s].q === '7' ? 0.035 : 0) + BW * bc[labels[s].r]; }
     emit[f*(S+1)+S] = energy[f] < eMax * 0.06 ? 2 : 0.25;
     if (hold[f]) for (let s = 0; s <= S; s++) emit[f*(S+1)+s] = 0;
   }
