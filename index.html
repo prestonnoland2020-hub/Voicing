@@ -1,9 +1,9 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Voicing"><meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" sizes="180x180" href="/Voicing/apple-touch-icon.png?v=2"><link rel="icon" type="image/png" href="/Voicing/favicon-32.png?v=2"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#eef1f3">
+<link rel="apple-touch-icon" href="/Voicing/voicing-icon-180.png?v=3"><link rel="apple-touch-icon" sizes="180x180" href="/Voicing/voicing-icon-180.png?v=3"><link rel="icon" type="image/png" href="/Voicing/favicon-32.png?v=3"><link rel="manifest" href="/Voicing/manifest.webmanifest?v=3"><meta name="theme-color" content="#eef1f3">
 <style>:root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
-<title>Voicing</title>
+<title>Voicing</title><meta name="voicing-version" content="1.5.0+a5a8f71">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&display=swap">
@@ -205,10 +205,13 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
 /* save sheet */
 .sheet{position:fixed;inset:0;z-index:10;background:rgba(10,14,16,.45);display:flex;align-items:flex-end;justify-content:center;padding:0 10px}
 .sheet[hidden]{display:none}
+.ver{text-align:center;font-size:12px;color:var(--muted);display:flex;justify-content:center;gap:10px;align-items:center;flex-wrap:wrap}
+.link{border:0;background:none;color:var(--muted);font:inherit;text-decoration:underline;padding:8px 4px;min-height:32px}
+.log{white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:40vh;overflow:auto;background:var(--brass-soft);border-radius:12px;padding:10px;margin:0}
 .sheet-card{width:100%;max-width:440px;background:var(--surface);border-radius:26px 26px 0 0;padding:22px 18px max(16px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;animation:up .3s cubic-bezier(.2,.9,.3,1)}
 @keyframes up{from{transform:translateY(48px);opacity:0}}
 .field{display:flex;flex-direction:column;gap:6px}
-.field input{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;min-height:50px;width:100%}
+.field input{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;min-height:50px;width:100%;box-sizing:border-box}
 .field input:focus{outline:none;border-color:var(--brass)}
 .label em{font-style:normal;text-transform:none;letter-spacing:0;font-weight:500}
 /* library */
@@ -297,6 +300,7 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
       <button class="quiet" id="demo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>Or try the demo track</button>
       <p class="err" id="pickErr" hidden></p>
     </div>
+    <p class="ver"><span id="verTxt">Version 1.5.0+a5a8f71</span><button class="link" id="openLog" type="button">Problem log <span id="logN"></span></button></p>
   </section>
 
 
@@ -424,8 +428,28 @@ button:focus-visible,label.btn:focus-within{outline:2px solid var(--brass);outli
     <button class="quiet" id="cancelSave" type="button">Not now</button>
   </form>
 </div>
+<div class="sheet" id="logSheet" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="logH">
+    <h2 id="logH">Problem log</h2>
+    <p class="note">Errors this app hit on this phone. It stays on your phone and is never sent anywhere. Copy it if you want to share it.</p>
+    <pre class="log" id="logBody"></pre>
+    <button class="primary" id="copyLog" type="button">Copy log</button>
+    <button class="quiet" id="clearLog" type="button">Clear log</button>
+    <button class="quiet" id="closeLog" type="button">Close</button>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script>
+// problem log: keeps the last 30 errors on this phone (localStorage), never sends them anywhere
+const VERSION = '1.5.0+a5a8f71';
+const LOG = { key: 'voicing.errors', read() { try { return JSON.parse(localStorage.getItem(this.key) || '[]'); } catch (e) { return []; } },
+  add(kind, msg, extra) { try { const l = this.read(); l.push({ at: new Date().toISOString(), v: VERSION, kind, msg: String(msg || '').slice(0, 300), extra: extra ? String(extra).slice(0, 600) : undefined, ua: navigator.userAgent.slice(0, 120) });
+    localStorage.setItem(this.key, JSON.stringify(l.slice(-30))); } catch (e) {} if (window.onLog) window.onLog(); },
+  clear() { try { localStorage.removeItem(this.key); } catch (e) {} } };
+addEventListener('error', e => LOG.add('error', e.message, (e.filename || '').split('/').pop() + ':' + e.lineno + ':' + e.colno + (e.error && e.error.stack ? '\n' + e.error.stack : '')));
+addEventListener('unhandledrejection', e => LOG.add('promise', e.reason && e.reason.message || e.reason, e.reason && e.reason.stack));
+</script>
 <script>
 // ===== Voicing analysis engine (runs in the browser; also testable in Node) =====
 const ENG = (() => {
@@ -455,33 +479,68 @@ function fftMag(x, off, re, im, mag) {
 }
 
 // ---- tempo + beat tracking (onset envelope, dynamic-programming beat tracker) ----
+function onsetEnv(x) {
+  // band-wise spectral flux on a small FFT: picks up soft strums as well as drums
+  const n2 = 1024, h = 256, nf = Math.max(1, Math.floor((x.length - n2) / h)), w2 = new Float32Array(n2);
+  for (let i = 0; i < n2; i++) w2[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / n2);
+  const NBd = 24, edges = []; for (let i = 0; i <= NBd; i++) edges.push(Math.round(2 + (n2 / 2 - 3) * (Math.pow(2, i * 7.5 / NBd) - 1) / (Math.pow(2, 7.5) - 1)));
+  const rv = new Uint32Array(n2); { const bits = Math.log2(n2); for (let i = 0; i < n2; i++) { let r = 0, v = i; for (let b = 0; b < bits; b++) { r = (r << 1) | (v & 1); v >>= 1; } rv[i] = r; } }
+  const re = new Float32Array(n2), im = new Float32Array(n2), prev = new Float32Array(NBd), e = new Float32Array(nf), BL = new Float32Array(nf * NBd);
+  for (let f = 0; f < nf; f++) {
+    for (let i = 0; i < n2; i++) { re[rv[i]] = (x[f * h + i] || 0) * w2[i]; im[rv[i]] = 0; }
+    for (let size = 2; size <= n2; size <<= 1) { const half = size >> 1, ang = -2 * Math.PI / size;
+      for (let s = 0; s < n2; s += size) for (let j = 0; j < half; j++) { const c = Math.cos(ang * j), sn = Math.sin(ang * j), a = s + j, b = a + half;
+        const tr = re[b] * c - im[b] * sn, ti = re[b] * sn + im[b] * c; re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti; } }
+    let flux = 0;
+    for (let k = 0; k < NBd; k++) { let m = 0; for (let i = edges[k]; i < Math.max(edges[k] + 1, edges[k + 1]); i++) m += Math.hypot(re[i], im[i]); const l = Math.log(1 + 100 * m); BL[f*NBd+k] = m; if (f) flux += Math.max(0, l - prev[k]); prev[k] = l; }
+    e[f] = flux;
+  }
+  // remove the slow trend, keep the peaks
+  const out = new Float32Array(nf), W = 16; let acc = 0;
+  for (let i = 0; i < nf; i++) { acc += e[i]; if (i >= 2 * W + 1) acc -= e[i - 2 * W - 1]; const c = i - W; if (c >= 0) out[c] = Math.max(0, e[c] - acc / (2 * W + 1)); }
+  let mu = 0; for (let i = 0; i < nf; i++) mu += out[i]; mu /= nf || 1; let sd = 0; for (let i = 0; i < nf; i++) sd += (out[i] - mu) ** 2; sd = Math.sqrt(sd / (nf || 1)) || 1;
+  for (let i = 0; i < nf; i++) out[i] /= sd;
+  // drums decay in tens of ms; guitar notes ring. Share of energy that is short-lived (percussive), per band group
+  const pw = new Float32Array(9), tw = new Float32Array(17); let pe = 0, te = 0, pHi = 0, tHi = 0;
+  for (let f = 8; f < nf - 8; f += 2) for (let k = 0; k < NBd; k++) {
+    for (let d = -8; d <= 8; d++) tw[d + 8] = BL[(f + d) * NBd + k]; const hm = tw.sort()[8];
+    let c = 0; for (let d = -4; d <= 4; d++) { const kk = Math.min(NBd - 1, Math.max(0, k + d)); pw[c++] = BL[f * NBd + kk]; } const vm = pw.sort()[4];
+    const v = BL[f * NBd + k] ** 2, isP = vm > hm * 2; te += v; if (isP) pe += v; if (k < 6) { tHi += v; if (isP) pHi += v; } }
+  return { e: out, fps: SR / h, perc: pe / (te || 1), percLo: pHi / (tHi || 1) };
+}
 function tempo(x) {
-  const B = 512, n = Math.floor(x.length / B), e = new Float32Array(n);
-  let prev = 0;
-  for (let i = 0; i < n; i++) { let s = 0; for (let j = 1; j < B; j++) { const d = x[i*B+j] - x[i*B+j-1]; s += d*d; } const l = Math.log(1e-9 + s); e[i] = Math.max(0, l - prev); prev = l; }
-  let mu = 0; for (let i = 0; i < n; i++) mu += e[i]; mu /= n || 1; let sd = 0; for (let i = 0; i < n; i++) sd += (e[i]-mu)**2; sd = Math.sqrt(sd / (n || 1)) || 1;
-  for (let i = 0; i < n; i++) e[i] /= sd;
-  const fps = SR / B; let best = 0, bestBpm = 100;
-  const score = bpm => { const lag = fps * 60 / bpm, L = Math.floor(lag), f = lag - L; let s = 0;
-    for (let i = 0; i + L + 1 < n; i++) s += e[i] * (e[i+L] * (1-f) + e[i+L+1] * f); return s / (n - L); };
-  for (let bpm = 60; bpm <= 180; bpm += 0.5) { const w = Math.exp(-0.5 * Math.pow(Math.log2(bpm / 105) / 0.9, 2)); const s = score(bpm) * w; if (s > best) { best = s; bestBpm = bpm; } }
-  // DP beat tracker: beats land on strong onsets while keeping spacing close to the tempo
-  const tau = fps * 60 / bestBpm, C = new Float32Array(n), back = new Int32Array(n).fill(-1), A = 60;
+  const { e, fps, perc, percLo } = onsetEnv(x), n = e.length;
+  const ac = lag => { const L = Math.floor(lag), f = lag - L; let s = 0; for (let i = 0; i + L + 1 < n; i++) s += e[i] * (e[i + L] * (1 - f) + e[i + L + 1] * f); return s / Math.max(1, n - L); };
+  // a beat period should also line up with 2 and 4 beats (the bar), which rules out dotted-beat answers
+  const score = bpm => { const lag = fps * 60 / bpm; return ac(lag) + 0.5 * ac(2 * lag) + 0.5 * ac(4 * lag) + 0.25 * ac(lag / 2); };
+  let best = 0, bestBpm = 100;
+  const TC = +(globalThis.T_C ?? 110), TSD = +(globalThis.T_SD ?? 1.0);
+  for (let bpm = 55; bpm <= 190; bpm += 0.25) { const w = Math.exp(-0.5 * Math.pow(Math.log2(bpm / TC) / TSD, 2)); const s = score(bpm) * w; if (s > best) { best = s; bestBpm = bpm; } }
+  let beats = trackBeats(e, fps, bestBpm);
+  // strummed 8ths fool the pulse into double time; then every other beat is a weaker up-strum
+  const PR = +(globalThis.T_PR ?? 0);
+  if (PR && bestBpm >= 110 && beats.length > 8) { const at = t => { const c = Math.round((t - 512 / SR) * fps); let m = 0; for (let k = c - 2; k <= c + 2; k++) if (k >= 0 && k < n) m = Math.max(m, e[k]); return m; };
+    const par = [0, 0], cn = [0, 0]; beats.forEach((t, i) => { par[i & 1] += at(t); cn[i & 1]++; }); const a = par[0] / cn[0], b = par[1] / cn[1];
+    if (globalThis.TDBG) TDBG.push({ bpm: bestBpm, ratio: +(Math.min(a, b) / Math.max(a, b)).toFixed(2) });
+    if (Math.min(a, b) / Math.max(a, b) < PR) { bestBpm /= 2; beats = beats.filter((_, i) => (i & 1) === (a >= b ? 0 : 1)); } }
+  return { bpm: Math.round(bestBpm), beats, env: e, fps, perc, percLo };
+}
+function trackBeats(e, fps, bpm) {
+  const n = e.length, tau = fps * 60 / bpm, C = new Float32Array(n), back = new Int32Array(n).fill(-1), A = 100;
   for (let t = 0; t < n; t++) {
     let bv = -1e9, bp = -1;
     for (let p = Math.max(0, Math.floor(t - 2 * tau)); p <= t - Math.round(tau / 2); p++) { const v = C[p] - A * Math.pow(Math.log((t - p) / tau), 2); if (v > bv) { bv = v; bp = p; } }
-    C[t] = e[t] + (bp >= 0 ? bv : 0); back[t] = bp >= 0 ? bp : -1;
+    C[t] = e[t] + (bp >= 0 ? Math.max(0, bv) : 0); back[t] = bp >= 0 && bv > 0 ? bp : -1;
   }
   let t = n - 1, mx = -1e9; for (let k = Math.max(0, Math.floor(n - tau)); k < n; k++) if (C[k] > mx) { mx = C[k]; t = k; }
-  const beats = []; while (t >= 0) { beats.push((t + 0.5) * B / SR); t = back[t]; }
-  beats.reverse();
-  return { bpm: Math.round(bestBpm), beats };
+  const beats = []; while (t >= 0) { beats.push(t / fps + 512 / SR); t = back[t]; }
+  return beats.reverse();
 }
 
 // ---- main analysis ----
 async function analyze(x, onStep) {
   onStep && onStep(0, 0); await sleep();
-  const { bpm, beats } = tempo(x);
+  const { bpm, beats, perc, percLo } = tempo(x);
   onStep && onStep(1, 1); await sleep();
   const frames = Math.max(1, Math.floor((x.length - N) / HOP));
   const re = new Float32Array(N), im = new Float32Array(N), mag = new Float32Array(N / 2);
@@ -509,44 +568,131 @@ async function analyze(x, onStep) {
     const k0 = Math.max(1, Math.floor(fc * Math.pow(2, -0.45/12) / binHz)), k1 = Math.ceil(fc * Math.pow(2, 0.45/12) / binHz);
     bins.push([k0, k1]);
   }
-  const P = new Float32Array(frames * NB), energy = new Float32Array(frames);
+  const P = new Float32Array(frames * NB), energy = new Float32Array(frames), HF = new Float32Array(frames), LF = new Float32Array(frames);
+  // note-by-note model: each guitar note is a fundamental plus fading overtones; per frame we solve how much of each note is sounding
+  const KMAX = Math.floor(2600 / binHz), Wt = [];
+  for (let b = 0; b < NB; b++) { const f0 = 440 * Math.pow(2, (LO + b - 69) / 12 + tune / 1200), ent = new Map();
+    for (let h = 1; h <= 10; h++) { const fk = f0 * h * Math.sqrt(1 + 0.00008 * h * h), kc = fk / binHz; if (kc + 3 >= KMAX) break; const amp = Math.pow(h, -0.9);
+      for (let k = Math.floor(kc - 2); k <= Math.ceil(kc + 2); k++) if (k > 0) { const g = amp * Math.exp(-0.5 * ((k - kc) / 0.9) ** 2); ent.set(k, (ent.get(k) || 0) + g); } }
+    let nrm = 0; for (const v of ent.values()) nrm += v * v; nrm = Math.sqrt(nrm); Wt.push([...ent].map(([k, v]) => [k, v / nrm])); }
+  const G = new Float32Array(NB * NB); { const dense = Wt.map(e => { const d = new Float32Array(KMAX); for (const [k, v] of e) d[k] = v; return d; });
+    for (let i = 0; i < NB; i++) for (let j = i; j < NB; j++) { let s = 0; for (const [k, v] of Wt[i]) s += v * dense[j][k]; G[i*NB+j] = G[j*NB+i] = s; } }
+  const VS = new Float32Array(frames * KMAX), A = new Float32Array(frames * NB), hv = new Float32Array(NB), wv = new Float32Array(NB), gh = new Float32Array(NB), vv = new Float32Array(KMAX);
   for (let f = 0; f < frames; f++) {
     fftMag(x, f * HOP, re, im, mag);
     let tot = 0;
     for (let b = 0; b < NB; b++) { let v = 0; for (let k = bins[b][0]; k <= bins[b][1]; k++) if (mag[k] > v) v = mag[k]; P[f*NB+b] = v; tot += v; }
     energy[f] = tot;
+    for (let k = 0; k < KMAX; k++) VS[f*KMAX+k] = Math.sqrt(mag[k]);
+    { let lo = 0, hi = 0, all = 0; for (let k = 1; k < N / 2; k++) { const v = mag[k] * mag[k], hz = k * binHz; all += v; if (hz < 110) lo += v; else if (hz > 5000) hi += v; } HF[f] = hi / (all + 1e-12); LF[f] = lo / (all + 1e-12); }
     if (f % 48 === 0) await sleep();
   }
+  // drums are short and broadband: a running median over time keeps the sustained (pitched) part of each bin
+  { const MW = +(globalThis.A_MED ?? 1), tmp = new Float32Array(2 * MW + 1);
+    for (let f = 0; f < frames; f++) {
+      for (let k = 0; k < KMAX; k++) { if (MW) { let n = 0; for (let g = Math.max(0, f - MW); g <= Math.min(frames - 1, f + MW); g++) tmp[n++] = VS[g*KMAX+k]; const a = tmp.subarray(0, n).sort(); vv[k] = Math.min(VS[f*KMAX+k], a[n >> 1] * 1.0 + 0.5 * (VS[f*KMAX+k] - a[n >> 1]) * +(globalThis.A_KEEP ?? 0)); } else vv[k] = VS[f*KMAX+k]; }
+      for (let i = 0; i < NB; i++) { let s = 0; for (const [k, v] of Wt[i]) s += v * vv[k]; wv[i] = s; hv[i] = s > 0 ? s : 0; }
+      for (let it = 0; it < 30; it++) { for (let i = 0; i < NB; i++) { let s = 0; for (let j = 0; j < NB; j++) s += G[i*NB+j] * hv[j]; gh[i] = s; } for (let i = 0; i < NB; i++) hv[i] *= wv[i] / (gh[i] + 1e-9); }
+      for (let i = 0; i < NB; i++) A[f*NB+i] = hv[i];
+      if (f % 48 === 0) await sleep(); } }
   // normalise + log compress
   let eMax = 0; for (let f = 0; f < frames; f++) if (energy[f] > eMax) eMax = energy[f];
   // single-note onsets (licks): new energy that lands on one pitch and its overtones, not spread like a strum
   const noteEvents = [], hold = new Uint8Array(frames); // hold = frames where a lick plays over a held chord
   { let gMax = 1e-9; for (let i = 0; i < P.length; i++) if (P[i] > gMax) gMax = P[i];
     const L = new Float32Array(P.length); for (let i = 0; i < P.length; i++) L[i] = Math.log(1 + 60 * P[i] / gMax);
-    const d = new Float32Array(NB), fluxes = [];
-    for (let f = 2; f < frames; f++) { let tot = 0; for (let b = 0; b < NB; b++) tot += Math.max(0, L[f*NB+b] - Math.max(L[(f-1)*NB+b], L[(f-2)*NB+b])); fluxes.push(tot); }
-    const sorted = [...fluxes].sort((a, b) => a - b), thr = Math.max(0.4, sorted[Math.floor(sorted.length * 0.7)] * 1.2);
-    let last = -1, holding = 0;
+    // harmonic salience of each candidate note (E3..C6): fundamental plus overtones, so bass and drums count less
+    const M0 = 52 - LO, M1 = 84 - LO, NM = M1 - M0 + 1, HW = [[0, 1], [12, 0.6], [19, 0.4], [24, 0.3]];
+    const S = new Float32Array(frames * NM);
+    let aMax = 1e-9; for (let i = 0; i < A.length; i++) if (A[i] > aMax) aMax = A[i];
+    for (let f = 0; f < frames; f++) for (let j = 0; j < NM; j++) { const b = M0 + j; let s = 0, w = 0; for (const [h, wt] of HW) { w += wt; if (b + h < NB) s += wt * L[f*NB+b+h]; else if (globalThis.SAL_NORM ?? 1) w -= wt; } S[f*NM+j] = s / w; }
+    const dS = new Float32Array(NM), all = [];
+    const delta = f => { for (let j = 0; j < NM; j++) dS[j] = Math.max(0, S[f*NM+j] - Math.max(S[(f-1)*NM+j], S[(f-2)*NM+j])); const srt = [...dS].sort((a, b) => a - b), med = srt[NM >> 1]; for (let j = 0; j < NM; j++) dS[j] = Math.max(0, dS[j] - med); };
+    for (let f = 2; f < frames; f++) { delta(f); let mx = 0; for (let j = 0; j < NM; j++) mx = Math.max(mx, dS[j]); all.push(mx); }
+    const srt = [...all].sort((a, b) => a - b), thr = Math.max(0.12, srt[Math.floor(srt.length * 0.6)] * +(globalThis.THR_K ?? 1.3));
+    const REL = [0, 1, -1, 12, -12, 19, -19, 24, -24, 7, -5, 11, 13, -11, -13];
+    const candsA = [], strumA = [], candsB = [], strumB = [];
+    { const cands = candsA, strumF = strumA; let last = -1;
+      const LA = new Float32Array(A.length); for (let i = 0; i < A.length; i++) LA[i] = Math.log(1 + 40 * A[i] / aMax);
+      const rs = new Float32Array(NB), tops = [];
+      // rise of each note, as a share of the loudest note sounding now (linear, so near-silent templates can't fake a big jump)
+      const riseAt = f => { let fm = 1e-9; for (let b = M0; b < NB; b++) fm = Math.max(fm, A[f*NB+b]);
+        for (let b = 0; b < NB; b++) { const a = A[f*NB+b], p = Math.max(A[(f-1)*NB+b], A[(f-2)*NB+b]); rs[b] = a > fm * 0.2 ? Math.max(0, a - p * +(globalThis.A_DEC ?? 1)) / fm : 0; } };
+      for (let f = 2; f < frames; f++) { riseAt(f); let mx = 0; for (let b = M0; b < NB; b++) mx = Math.max(mx, rs[b]); tops.push(mx); }
+      const st = [...tops].sort((a, b) => a - b), athr = Math.max(+(globalThis.A_MIN ?? 0.2), st[Math.floor(st.length * +(globalThis.A_PCT ?? 0.6))] * +(globalThis.A_K ?? 1.2));
+      const REL2 = [0, 12, -12, 19, -19, 24, 28];
+      for (let f = 2; f < frames; f++) {
+        riseAt(f);
+        let m = M0; for (let b = M0 + 1; b < NB; b++) if (rs[b] > rs[m]) m = b;
+        const top = rs[m]; if (top < athr) continue;
+        if (m - 12 >= M0 && rs[m - 12] > top * +(globalThis.A_OCT ?? 0.6)) m -= 12;
+        if (f + 1 < frames) { const nx = Math.max(0, LA[(f+1)*NB+m] - Math.max(LA[f*NB+m], LA[(f-1)*NB+m])); if (nx > rs[m] * 1.1) continue; }
+        // a plucked string has overtones; a drum's pitched ring (a snare is near G3) is close to a pure tone
+        if (globalThis.A_HARM ?? 1) { const rl = k => k < NB ? Math.max(0, L[f*NB+k] - Math.max(L[(f-1)*NB+k], L[(f-2)*NB+k])) : 0, r0 = rl(m);
+          if (r0 > 0 && rl(m + 12) + rl(m + 19) < r0 * +(globalThis.A_HK ?? 0.5)) continue; }
+        let cnt = 0; for (let b = M0; b < NB; b++) { if (REL2.includes(b - m) || Math.abs(b - m) === 1) continue; if (rs[b] > top * +(globalThis.A_REL ?? 0.4)) cnt++; }
+        if (globalThis.DBG) DBG.push({ t: +((f * HOP + N / 2) / SR).toFixed(2), midi: LO + m, top: +top.toFixed(2), cnt, thr: +athr.toFixed(2) });
+        if (cnt <= +(globalThis.A_CNT ?? 0)) {
+          const gap = (f - last) * HOP / SR, prevN = cands[cands.length - 1];
+          if (gap > 0.12 && !(prevN && prevN.midi === LO + m && (f * HOP + N / 2) / SR - prevN.t < 0.3)) { cands.push({ t: (f * HOP + N / 2) / SR, midi: LO + m, f }); last = f; }
+        } else if (cnt >= 4) strumF.push(f);
+      }
+    }
+    { const cands = candsB, strumF = strumB; let last = -1;
     for (let f = 2; f < frames; f++) {
-      let tot = 0; for (let b = 0; b < NB; b++) { d[b] = Math.max(0, L[f*NB+b] - Math.max(L[(f-1)*NB+b], L[(f-2)*NB+b])); tot += d[b]; }
-      if (holding) { hold[f] = 1; holding--; }
-      if (tot < thr) continue;
+      delta(f);
+      const rise = k => Math.max(0, L[f*NB+k] - Math.max(L[(f-1)*NB+k], L[(f-2)*NB+k]));
+      // a plucked string rises with its overtones; a drum's pitched thump does not
+      const sup = j => { const b = M0 + j; return b + 12 < NB && rise(b + 12) < rise(b) * +(globalThis.SUP_T ?? 0.15) ? +(globalThis.SUP_W ?? 0.35) : 1; };
+      const order = [...Array(NM).keys()].map(j => [j, dS[j] * sup(j)]).sort((a, b) => b[1] - a[1]);
+      if (order[0][1] < thr) continue;
+      const d = new Float32Array(NB); for (let b = 0; b < NB; b++) d[b] = rise(b);
+      { const srt2 = [...d].sort((a, b) => a - b), med = srt2[NB >> 1]; for (let b = 0; b < NB; b++) d[b] = Math.max(0, d[b] - med); }
       let dMax = 0; for (let b = 0; b < NB; b++) if (d[b] > dMax) dMax = d[b];
-      const strong = []; let sSum = 0; for (let b = 0; b < NB; b++) if (d[b] > dMax * 0.3) { strong.push(b); sSum += d[b]; }
-      const H = [-1, 0, 1, 11, 12, 13, 18, 19, 20, 23, 24, 25, 28]; // overtones, plus the bin either side (leakage)
-      // strongest new pitch, then step down an octave (or twelfth) if that pitch is really an overtone
-      let m = -1; for (let b = 52 - LO; b <= 84 - LO; b++) if (m < 0 || d[b] > d[m]) m = b;
-      for (let k = 0; k < 2; k++) for (const down of [12, 19]) if (m - down >= 52 - LO && d[m - down] > dMax * 0.3) { m -= down; break; }
-      let mS = 0; for (const b of strong) if (H.includes(b - m)) mS += d[b];
-      if (m < 0) continue;
-      const others = strong.filter(b => !H.includes(b - m)).length;
-      if (mS / sSum > 0.68 && others <= 3) {
-        const gap = (f - last) * HOP / SR;
-        if (gap > 0.12) { noteEvents.push({ t: (f * HOP + N / 2) / SR, midi: LO + m });
-          // two picked notes close together = a lick: keep the chord from changing under it. One lone note doesn't hold.
-          if (last >= 0 && gap < 1.2) { for (let k = last; k <= f; k++) hold[k] = 1; holding = Math.round(1.2 * SR / HOP); }
-          last = f; } }
-      else if (mS / sSum < 0.5 && others > 5) { holding = 0; hold[f] = 0; }
+      const bassOv = new Set(); for (let b = 0; b < M0; b++) if (d[b] > dMax * 0.3) for (const h of [12, 19, 24, 28]) bassOv.add(b + h);
+      const H = [-1, 0, 1, 11, 12, 13, 18, 19, 20, 23, 24, 25, 28];
+      let got = null, cnt = 0, ratio = 0, tried = new Set();
+      for (let c = 0; c < +(globalThis.NC ?? 1) && !got; c++) {
+        let m = order[c][0]; const top = order[c][1]; if (top < thr || tried.has(m)) continue;
+        // the true pitch is the lowest of an octave/twelfth family that rose together
+        for (const down of [12, 19, 24]) if (m - down >= 0 && dS[m - down] > dS[m] * +(globalThis.OCT_K ?? 0.6)) { m -= down; break; }
+        tried.add(m);
+        const b0 = M0 + m;
+        if (b0 - 12 >= 0 && rise(b0 - 12) > rise(b0) * +(globalThis.BASS_K ?? 0.45)) continue; // overtone of a bass note below E3
+        if (f + 1 < frames) { const nx = Math.max(0, S[(f+1)*NM+m] - Math.max(S[f*NM+m], S[(f-1)*NM+m])); if (nx > dS[m] * 1.1) continue; } // wait for its peak
+        let mS = 0, sSum = 0, others = 0;
+        for (let b = M0 - 1; b < NB; b++) { if (d[b] <= dMax * 0.3) continue; const rel = H.includes(b - b0); if (!rel && bassOv.has(b)) continue; sSum += d[b]; if (rel) mS += d[b]; else others++; }
+        // on a drum hit the loudest rise can be the drum; judge the note against its own neighbourhood
+        ratio = mS / (sSum || 1); cnt = others;
+        if (globalThis.DBG) DBG.push({ t: +((f * HOP + N / 2) / SR).toFixed(2), midi: LO + b0, c, top: +top.toFixed(2), ratio: +ratio.toFixed(2), cnt, thr: +thr.toFixed(2) });
+        if ((ratio > 0.68 && others <= 3) || (!globalThis.NORELAX && c > 0 && d[b0] > dMax * 0.5 && ratio > 0.45 && others <= 4)) got = m;
+      }
+      const mS = ratio, sSum = 1;
+      if (got != null) { const m = got;
+        const gap = (f - last) * HOP / SR, prevN = cands[cands.length - 1];
+        if (gap > 0.12 && !(prevN && prevN.midi === LO + M0 + m && (f * HOP + N / 2) / SR - prevN.t < 0.3)) { cands.push({ t: (f * HOP + N / 2) / SR, midi: LO + M0 + m, f }); last = f; } }
+      else if (cnt > 5 && mS / (sSum || 1) < 0.5) strumF.push(f);
+    }
+    }
+    // two detectors: the note model (clean audio) and the overtone-rise test (holds up better under drums and bass)
+    // how much drum is in the mix: hi-hat/snare hiss above 5 kHz, and how much it pulses (flux), relative to the guitar
+    const med = a => { const t = [...a].sort((x, y) => x - y); return t[t.length >> 1]; };
+    let hfFlux = 0; for (let f = 1; f < frames; f++) hfFlux += Math.abs(Math.log((HF[f] + 1e-7) / (HF[f-1] + 1e-7))); hfFlux /= Math.max(1, frames - 1);
+    const drumInfo = { hf: perc, lf: percLo, hfFlux }; if (globalThis.DRUMDBG) DRUMDBG.push(drumInfo);
+    // drums (a kick's short low thump) wreck the note model, so with drums in the mix use the overtone-rise test
+    const FUSE = globalThis.L_FUSE ?? (percLo > +(globalThis.DRUM_T ?? 0.035) ? 'old' : 'act'), near = (a, b) => Math.abs(a.t - b.t) <= 0.1 && a.midi === b.midi;
+    let cands, strumF;
+    if (FUSE === 'old') { cands = candsB; strumF = strumB; }
+    else if (FUSE === 'and') { cands = candsA.filter(a => candsB.some(b => near(a, b))); strumF = strumA.concat(strumB); }
+    else if (FUSE === 'or') { cands = candsA.concat(candsB.filter(b => !candsA.some(a => near(a, b)))).sort((a, b) => a.t - b.t); strumF = strumA.filter(f => strumB.includes(f)); }
+    else { cands = candsA; strumF = strumA; }
+    // a lick is a run of picked notes; a lone "note" between strums is usually a strum or a ringing string
+    const RUN = +(globalThis.LICK_RUN || 3), GAP = +(globalThis.LICK_GAP || 1.0);
+    for (let i = 0; i < cands.length;) {
+      let j = i; while (j + 1 < cands.length && cands[j + 1].t - cands[j].t <= GAP && !strumF.some(sf => sf > cands[j].f + 1 && sf < cands[j + 1].f)) j++;
+      if (j - i + 1 >= RUN) { for (let k = i; k <= j; k++) noteEvents.push({ t: cands[k].t, midi: cands[k].midi });
+        for (let k = cands[i].f; k <= Math.min(frames - 1, cands[j].f + Math.round(0.5 * SR / HOP)); k++) hold[k] = 1; }
+      i = j + 1;
     } }
   for (let f = 0; f < frames; f++) {
     let mx = 1e-9; for (let b = 0; b < NB; b++) if (P[f*NB+b] > mx) mx = P[f*NB+b];
@@ -620,6 +766,7 @@ async function analyze(x, onStep) {
     if (ch) { const cs = voc.chords[ch.id].studio; if (cs.f.some((fr, st) => fr >= 0 && (OPEN[st] + voc.capo + fr) % 12 === n.midi % 12)) continue; }
     licks.push({ t: n.t, s: best.st, f: best.fr, midi: n.midi }); pos = best.fr;
   }
+  if (globalThis.ACTDBG) Object.assign(ACTDBG, { A, P, frames, NB, HOP, N, SR });
   return { bpm, beats, down, tune, key, capo: voc.capo, licks, chords: voc.chords, timeline, seconds: x.length / SR, env: envelope(energy, eMax) };
 }
 function envelope(energy, eMax) { const out = [], n = 60; for (let i = 0; i < n; i++) { const a = Math.floor(i * energy.length / n), b = Math.max(a + 1, Math.floor((i + 1) * energy.length / n)); let m = 0; for (let j = a; j < b; j++) m = Math.max(m, energy[j]); out.push(m / (eMax || 1)); } return out; }
@@ -651,11 +798,17 @@ function expected(shape, capo) {
     [[0,1],[12,0.5],[19,0.33],[24,0.25],[28,0.2]].forEach(([d, w]) => { const b = n + d - LO; if (b >= 0 && b < NB) v[b] += w; }); });
   return v;
 }
-const cos = (a, b) => { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { d += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; } return d / (Math.sqrt(na*nb) || 1e-9); };
+// the lowest octave counts less: a bass player doubles the root down there and would pull every chord toward a low-root barre
+const VW = new Float32Array(NB).map((_, b) => b < 12 ? +(globalThis.VW_LOW ?? 0.25) : 1);
+const cos = (a, b) => { let d = 0, na = 0, nb = 0; for (let i = 0; i < a.length; i++) { const w = VW[i]; d += w*a[i]*b[i]; na += w*a[i]*a[i]; nb += w*b[i]*b[i]; } return d / (Math.sqrt(na*nb) || 1e-9); };
+const FAM = { maj: ['maj', '7'], '7': ['7', 'maj'], min: ['min', 'm7'], m7: ['m7', 'min'] };
 function candidates(c, capo) {
   const list = [];
-  for (const s of OPEN_SHAPES) if ((s.root + capo) % 12 === c.root && s.q === c.q) list.push({ s, bonus: 0.03 });
-  if (capo === 0) for (const s of BARRES) if (s.root === c.root && s.q === c.q) list.push({ s, bonus: -0.015 - s.barre * 0.002 });
+  // also try the close relative (G vs G7, Em vs Em7): the label can pick up a ringing note from the chord before
+  const qs = FAM[c.q], qp = q => q === c.q ? 0 : -0.012;
+  for (const s of OPEN_SHAPES) if ((s.root + capo) % 12 === c.root && qs.includes(s.q)) list.push({ s, bonus: 0.03 + qp(s.q) });
+  // barre shapes work with a capo on too (Bm, F with a capo are common)
+  for (const s of BARRES) if ((s.root + capo) % 12 === c.root && qs.includes(s.q) && s.barre + capo <= 12) list.push({ s, bonus: -0.015 - s.barre * 0.002 + qp(s.q) - (capo ? +(globalThis.BARRE_CAPO ?? 0.01) : 0) });
   return list;
 }
 function scoreAll(c, capo) { return candidates(c, capo).map(({ s, bonus }) => ({ s, sc: cos(expected(s, capo), c.v) + bonus - capo * 0.004 })).sort((a, b) => b.sc - a.sc); }
@@ -663,7 +816,8 @@ function pickVoicings(chords) {
   let bestCapo = 0, bestTot = -1e9;
   for (let capo = 0; capo <= 7; capo++) {
     let tot = 0; for (const c of chords) { const r = scoreAll(c, capo); tot += c.dur * (r.length ? r[0].sc : 0.2); }
-    if (tot > bestTot + (capo ? 0.02 * chords.reduce((a, c) => a + c.dur, 0) : 0)) { bestTot = tot; bestCapo = capo; }
+    if (globalThis.CAPODBG) CAPODBG.push([capo, +(tot / chords.reduce((a, c) => a + c.dur, 0)).toFixed(3), chords.map(c => { const r = scoreAll(c, capo)[0]; return r ? c.name + ':' + r.s.f.map(v => v < 0 ? 'x' : v).join('') + ':' + r.sc.toFixed(3) : c.name + ':-'; }).join(' ')]);
+    if (tot > bestTot + (capo ? +(globalThis.CAPO_M ?? 0.005) * chords.reduce((a, c) => a + c.dur, 0) : 0)) { bestTot = tot; bestCapo = capo; }
   }
   const out = chords.map(c => {
     let r = scoreAll(c, bestCapo); let capoUsed = bestCapo;
@@ -671,7 +825,8 @@ function pickVoicings(chords) {
     const top = r[0], margin = r.length > 1 ? top.sc - r[1].sc : 0.05;
     // easy version: simplest open shape at same capo, else best overall
     const easy = r.filter(x => x.s.open && x.s.f.filter(v => v > 0).length <= 3).sort((a, b) => b.sc - a.sc)[0] || top;
-    return { sounds: c.name, dur: c.dur, studio: { ...top.s, capo: capoUsed }, easy: { ...easy.s, capo: capoUsed }, conf: margin > 0.035 ? 'high' : margin > 0.012 ? 'mid' : 'low', match: top.sc };
+    const q2 = top.s.q === 'maj' && /sus/.test(top.s.name) ? c.q : top.s.q;
+    return { sounds: NOTE[c.root] + QSUF[q2], dur: c.dur, studio: { ...top.s, capo: capoUsed }, easy: { ...easy.s, capo: capoUsed }, conf: margin > 0.035 ? 'high' : margin > 0.012 ? 'mid' : 'low', match: top.sc };
   });
   return { capo: bestCapo, chords: out };
 }
@@ -698,6 +853,37 @@ function synthDemo() {
   }
   return out;
 }
+// ---- tuner ----
+// YIN pitch: the lag where the signal best matches a delayed copy of itself
+function yinPitch(x, sr) {
+  const W = x.length >> 1, tMin = Math.floor(sr / 1100), tMax = Math.min(W - 2, Math.ceil(sr / 60)), d = new Float32Array(tMax + 2);
+  for (let tau = 1; tau <= tMax + 1; tau++) { let s = 0; for (let i = 0; i < W; i++) { const v = x[i] - x[i + tau]; s += v * v; } d[tau] = s; }
+  let run = 0; d[0] = 1; for (let tau = 1; tau <= tMax + 1; tau++) { run += d[tau]; d[tau] = run ? d[tau] * tau / run : 1; }
+  let tau = -1; for (let t = tMin; t <= tMax; t++) if (d[t] < 0.15) { while (t + 1 <= tMax && d[t + 1] < d[t]) t++; tau = t; break; }
+  if (tau < 0) return 0;
+  // a strong 2nd overtone can make half the period look like a match. If the note an octave down has its own
+  // odd overtones (1x, 3x, 5x of that lower pitch), they are real, so the true note is the lower one
+  { const t2 = 2 * tau; if (t2 + 2 <= tMax) { let m = t2; for (let t = t2 - 2; t <= t2 + 2; t++) if (d[t] < d[m]) m = t;
+    const N2 = x.length, amp = hz => { let re = 0, im = 0; for (let i = 0; i < N2; i++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N2), ph = 2 * Math.PI * hz * i / sr; re += x[i] * w * Math.cos(ph); im += x[i] * w * Math.sin(ph); } return Math.hypot(re, im); };
+    const lo = sr / m, odd = amp(lo) + amp(3 * lo) + amp(5 * lo), even = amp(2 * lo) + amp(4 * lo) + amp(6 * lo);
+    if (globalThis.YDBG) YDBG.push(+(odd / (even || 1)).toFixed(3));
+    if (d[m] < 0.3 && odd > even * +(globalThis.Y_R ?? 0.2)) { tau = m; while (tau + 1 <= tMax && d[tau + 1] < d[tau]) tau++; } } }
+  const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a - 2 * b + c, sh = den ? (a - c) / (2 * den) : 0;
+  return sr / (tau + Math.max(-1, Math.min(1, sh)));
+}
+const TUNER_STRINGS = [40, 45, 50, 55, 59, 64]; // E2 A2 D3 G3 B3 E4
+// one tuner reading: smooths over the last 5 pitches, ignores octave slips, and says which way to turn the peg
+function tunerStep(st, hz) {
+  if (!hz || hz < 60 || hz > 1100) return null;
+  const midiF = 69 + 12 * Math.log2(hz / 440); st.hist = st.hist || []; st.hist.push(midiF); if (st.hist.length > 5) st.hist.shift();
+  const sorted = [...st.hist].sort((a, b) => a - b), med = sorted[sorted.length >> 1];
+  if (Math.abs(midiF - med) > 0.6) return null;
+  const note = Math.round(med), cents = (med - note) * 100;
+  st.cents = st.note === note ? st.cents * 0.6 + cents * 0.4 : cents; st.note = note;
+  const inTune = Math.abs(st.cents) <= 5, r = Math.round(st.cents);
+  let string = -1, bd = 99; TUNER_STRINGS.forEach((m, i) => { const d = Math.abs(med - m); if (d < bd) { bd = d; string = i; } }); if (bd >= 2.5) string = -1;
+  return { midi: med, note, cents: st.cents, inTune, string, label: inTune ? 'In tune' : r < 0 ? `${-r} cents flat. Tighten.` : `${r} cents sharp. Loosen.` };
+}
 function wav(x) {
   const b = new ArrayBuffer(44 + x.length * 2), d = new DataView(b), w = (o, s) => [...s].forEach((c, i) => d.setUint8(o + i, c.charCodeAt(0)));
   w(0,'RIFF'); d.setUint32(4, 36 + x.length*2, true); w(8,'WAVEfmt '); d.setUint32(16,16,true); d.setUint16(20,1,true); d.setUint16(22,1,true);
@@ -705,7 +891,7 @@ function wav(x) {
   for (let i = 0; i < x.length; i++) d.setInt16(44 + i*2, Math.max(-1, Math.min(1, x[i])) * 32767, true);
   return b;
 }
-return { analyze, synthDemo, wav, SR, OPEN, NOTE };
+return { analyze, tempo, yinPitch, tunerStep, TUNER_STRINGS, synthDemo, wav, SR, OPEN, NOTE };
 })();
 if (typeof module !== 'undefined') module.exports = ENG;
 
@@ -850,6 +1036,7 @@ async function run(getSamples, meta) {
     await new Promise(r => setTimeout(r, 700)); if (cancelled) return;
     result = res; setLessonBack('pick'); buildLesson(); show('lesson');
   } catch (e) {
+    if (e.message !== 'nochords') LOG.add('analysis', e.message, e.stack);
     show('pick'); $('pickErr').hidden = false;
     $('pickErr').textContent = e.message === 'nochords' ? "No clear chords came through. Turn the music up, move closer, and try a song where guitar or piano plays chords." : "Something went wrong reading the audio. Try again.";
   }
@@ -866,6 +1053,7 @@ async function decodeFile(buf) {
 let rec = null; const REC_MAX = 30, REC_MIN = 8;
 function stopMic() { if (!rec) return; cancelAnimationFrame(rec.raf); rec.stream.getTracks().forEach(t => t.stop()); try { rec.sp.disconnect(); rec.src.disconnect(); } catch (e) {} const c = rec.ctx; rec = null; return c; }
 function micFail(name) {
+  LOG.add('mic', 'microphone unavailable: ' + (name || 'unsupported'));
   $('pickErr').hidden = false;
   const framed = (() => { try { return window.top !== window.self; } catch (e) { return true; } })();
   $('pickErr').textContent = framed && (name === 'NotAllowedError' || name === 'SecurityError' || !name)
@@ -948,15 +1136,6 @@ $('tStr').onclick = e => {
 function stopTuner() { if (!tun) return; cancelAnimationFrame(tun.raf); tun.stream.getTracks().forEach(t => t.stop()); try { tun.ctx.close(); } catch (e) {} tun = null; }
 function tunerReset(msg) { $('tGauge').setAttribute('class', 'gauge idle'); $('tNeedle').style.transform = 'rotate(0deg)'; $('tNote').innerHTML = '–'; $('tNote').className = 'tnote'; $('tRead').textContent = msg || 'Play one string'; $('tRead').className = 'tread'; $('tHz').innerHTML = '&nbsp;'; [...$('tStr').children].forEach(b => b.className = ''); }
 // YIN pitch detection on a (downsampled) frame; returns Hz or 0
-function yinPitch(x, sr) {
-  const W = x.length >> 1, tMin = Math.floor(sr / 1100), tMax = Math.min(W - 2, Math.ceil(sr / 60)), d = new Float32Array(tMax + 2);
-  for (let tau = 1; tau <= tMax + 1; tau++) { let s = 0; for (let i = 0; i < W; i++) { const v = x[i] - x[i + tau]; s += v * v; } d[tau] = s; }
-  let run = 0; d[0] = 1; for (let tau = 1; tau <= tMax + 1; tau++) { run += d[tau]; d[tau] = run ? d[tau] * tau / run : 1; }
-  let tau = -1; for (let t = tMin; t <= tMax; t++) if (d[t] < 0.15) { while (t + 1 <= tMax && d[t + 1] < d[t]) t++; tau = t; break; }
-  if (tau < 0) return 0;
-  const a = d[tau - 1], b = d[tau], c = d[tau + 1], den = a - 2 * b + c, sh = den ? (a - c) / (2 * den) : 0;
-  return sr / (tau + Math.max(-1, Math.min(1, sh)));
-}
 $('openTune').onclick = async () => {
   show('tune'); tunerReset(); $('tErr').hidden = true;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return tunerFail();
@@ -969,6 +1148,7 @@ $('openTune').onclick = async () => {
   $('tRead').textContent = 'Listening. Play one string.'; tunerFrame();
 };
 function tunerFail(name) {
+  LOG.add('mic', 'tuner microphone unavailable: ' + (name || 'unsupported'));
   $('tErr').hidden = false; tunerReset('Microphone needed');
   $('tErr').textContent = name === 'NotAllowedError' ? 'Microphone access is off. Turn it on for this site in your browser settings, then open the tuner again.' : "The microphone couldn't start here. Open Voicing as its own app and try again.";
 }
@@ -980,23 +1160,16 @@ function tunerFrame() {
   const now = performance.now();
   if (rms < 0.006) { if (now - tun.last > 1400 && tun.note >= 0) { tun.note = -1; tun.hist = []; tunerReset('Listening. Play one string.'); } return; }
   const x = tun.x; for (let i = 0; i < x.length; i++) x[i] = tun.ds === 2 ? (tun.buf[2 * i] + tun.buf[2 * i + 1]) / 2 : tun.buf[i];
-  const hz = yinPitch(x, tun.sr); if (!hz || hz < 60 || hz > 1100) return;
-  const midiF = 69 + 12 * Math.log2(hz / 440);
-  tun.hist.push(midiF); if (tun.hist.length > 5) tun.hist.shift();
-  const sorted = [...tun.hist].sort((a, b) => a - b), med = sorted[sorted.length >> 1];
-  if (Math.abs(midiF - med) > 0.6) return;            // ignore octave jumps / glitches
-  const note = Math.round(med), cents = (med - note) * 100;
-  tun.cents = tun.note === note ? tun.cents * 0.6 + cents * 0.4 : cents; tun.note = note; tun.last = now;
-  const c = Math.max(-50, Math.min(50, tun.cents)), on = Math.abs(tun.cents) <= 5;
+  const hz = ENG.yinPitch(x, tun.sr); if (!hz || hz < 60 || hz > 1100) return;
+  const rd = ENG.tunerStep(tun, hz); if (!rd) return; tun.last = now;
+  const med = rd.midi, note = rd.note, c = Math.max(-50, Math.min(50, tun.cents)), on = rd.inTune;
   $('tNeedle').style.transform = `rotate(${(c / 50 * 62).toFixed(1)}deg)`;
   $('tGauge').setAttribute('class', 'gauge' + (on ? ' on' : ''));
   $('tNote').innerHTML = `${T_NAMES[((note % 12) + 12) % 12]}<sub>${Math.floor(note / 12) - 1}</sub>`; $('tNote').className = 'tnote' + (on ? ' on' : '');
-  const r = Math.round(tun.cents);
-  $('tRead').textContent = on ? 'In tune' : r < 0 ? `${-r} cents flat. Tighten.` : `${r} cents sharp. Loosen.`;
-  $('tRead').className = 'tread ' + (on ? 'on' : r < 0 ? 'lo' : 'hi');
+  $('tRead').textContent = rd.label;
+  $('tRead').className = 'tread ' + (on ? 'on' : rd.cents < 0 ? 'lo' : 'hi');
   $('tHz').textContent = hz.toFixed(1) + ' Hz';
-  let best = -1, bd = 99; T_STR.forEach((m, i) => { const dd = Math.abs(med - m); if (dd < bd) { bd = dd; best = i; } });
-  [...$('tStr').children].forEach((b, i) => b.className = i === best && bd < 2.5 ? (on && note === T_STR[i] ? 'ok' : 'cur') : '');
+  [...$('tStr').children].forEach((b, i) => b.className = i === rd.string ? (on && note === T_STR[i] ? 'ok' : 'cur') : '');
 }
 // ---------- lesson ----------
 let result = null, version = 'studio';
@@ -1096,6 +1269,14 @@ const Lib = {
   async del(id) { try { await DB.del(id); } catch (e) { lsSet(lsAll().filter(x => x.id !== id)); } memLib = memLib.filter(x => x.id !== id); }
 };
 let toastT;
+function renderLog() { const l = LOG.read(); $('logN').textContent = l.length ? '(' + l.length + ')' : '';
+  $('logBody').textContent = l.length ? l.slice().reverse().map(e => `${e.at.replace('T', ' ').slice(0, 19)}  ${e.kind}  v${e.v}\n${e.msg}${e.extra ? '\n' + e.extra : ''}`).join('\n\n') : 'No problems logged.'; }
+window.onLog = renderLog; renderLog();
+$('openLog').onclick = () => { renderLog(); $('logSheet').hidden = false; };
+$('closeLog').onclick = () => $('logSheet').hidden = true;
+$('clearLog').onclick = () => { LOG.clear(); renderLog(); toast('Log cleared'); };
+$('copyLog').onclick = async () => { const t = `Voicing ${VERSION}\n${navigator.userAgent}\n\n` + $('logBody').textContent; try { await navigator.clipboard.writeText(t); toast('Log copied'); } catch (e) { toast("Couldn't copy. Press and hold the text to copy it."); } };
+$('logSheet').onclick = e => { if (e.target === $('logSheet')) $('logSheet').hidden = true; };
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
 const TICK = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M5 12.5l4.5 4.5L19 7"/></svg>';
 const MARK = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16l-5-4-5 4z"/></svg>';

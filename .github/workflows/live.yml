@@ -1,0 +1,21 @@
+name: Live site check
+# After GitHub Pages publishes, open the live site and make sure it's the version just pushed and it works.
+on:
+  workflow_run:
+    workflows: [pages-build-deployment]
+    types: [completed]
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Live site serves this version and the demo works
+        run: node tests/live.check.js

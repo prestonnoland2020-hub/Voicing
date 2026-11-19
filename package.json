@@ -1,0 +1,17 @@
+{
+  "name": "voicing",
+  "version": "1.5.0",
+  "private": true,
+  "description": "Voicing: hear a song, learn its exact guitar voicing.",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node build.js --check && node tests/tuner.test.js && node tests/engine.test.js && node tests/accuracy.js --gate && node tests/ui.test.js",
+    "test:tuner": "node tests/tuner.test.js",
+    "test:accuracy": "node tests/accuracy.js",
+    "test:ui": "node tests/ui.test.js",
+    "check:live": "node tests/live.check.js"
+  },
+  "devDependencies": {
+    "playwright-core": "1.49.1"
+  }
+}

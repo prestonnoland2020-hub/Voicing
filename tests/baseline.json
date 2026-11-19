@@ -1,0 +1,92 @@
+{
+ "tune/clean": {
+  "chord": 96.9,
+  "voicing": 92,
+  "capo": 100,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 84.5,
+  "tune": 100
+ },
+ "tune/band": {
+  "chord": 91,
+  "voicing": 78.4,
+  "capo": 90,
+  "tempo": 95,
+  "beatF": 98.4,
+  "lickF": 43.4,
+  "tune": 100
+ },
+ "tune/phone": {
+  "chord": 85.2,
+  "voicing": 63.7,
+  "capo": 80,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 30.8,
+  "tune": 100
+ },
+ "tune/real": {
+  "chord": 90,
+  "voicing": 88.2,
+  "capo": 100,
+  "tempo": 85,
+  "beatF": 92.4,
+  "lickF": 57.3,
+  "tune": 100
+ },
+ "tune/realband": {
+  "chord": 92.2,
+  "voicing": 81.5,
+  "capo": 95,
+  "tempo": 95,
+  "beatF": 98.4,
+  "lickF": 44.8,
+  "tune": 100
+ },
+ "holdout/clean": {
+  "chord": 94.3,
+  "voicing": 97.2,
+  "capo": 100,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 68.5,
+  "tune": 100
+ },
+ "holdout/band": {
+  "chord": 91.7,
+  "voicing": 71.9,
+  "capo": 81.3,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 26.1,
+  "tune": 100
+ },
+ "holdout/phone": {
+  "chord": 87,
+  "voicing": 64.5,
+  "capo": 75,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 14,
+  "tune": 100
+ },
+ "holdout/real": {
+  "chord": 87.8,
+  "voicing": 70.6,
+  "capo": 75,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 67.3,
+  "tune": 100
+ },
+ "holdout/realband": {
+  "chord": 86.1,
+  "voicing": 68.3,
+  "capo": 81.3,
+  "tempo": 100,
+  "beatF": 100,
+  "lickF": 35.4,
+  "tune": 100
+ }
+}

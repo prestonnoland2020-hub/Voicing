@@ -1,0 +1,30 @@
+name: Tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Built page matches the source
+        run: node build.js --check
+      - name: Tuner (6 strings, sharp and flat, real recordings)
+        run: node tests/tuner.test.js
+      - name: Engine
+        run: node tests/engine.test.js
+      - name: Accuracy (must not get worse than the baseline)
+        run: node tests/accuracy.js --gate
+      - name: Screens at iPhone sizes, buttons and mic flows
+        run: node tests/ui.test.js
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: tests/out/
