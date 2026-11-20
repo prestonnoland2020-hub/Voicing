@@ -50,7 +50,7 @@ const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7), r
   // Home Screen icon and manifest: every icon the page and manifest name has to load
   { const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), base = new URL(URL0).origin;
     const links = [...html.matchAll(/<link[^>]+rel="(?:apple-touch-icon|icon|manifest)"[^>]+href="([^"]+)"/g)].map(m => m[1]);
-    const man = links.find(l => /manifest/.test(l)), icons = man ? JSON.parse(await (await fetch(base + man)).text()).icons.map(i => '/Voicing/' + i.src.replace(/^\/?Voicing\//, '').replace(/^\.\//, '')) : [];
+    const man = links.find(l => /manifest/.test(l)), icons = man ? JSON.parse(await (await fetch(new URL(man, URL0))).text()).icons.map(i => '/Voicing/' + i.src.replace(/^\/?Voicing\//, '').replace(/^\.\//, '')) : [];
     const bad = []; for (const l of [...links, ...icons]) { const r = await fetch(new URL(l, URL0)); if (r.status !== 200) bad.push(`${l} (${r.status})`); }
     ok('Home Screen icons and manifest all load', links.length >= 3 && icons.length >= 2 && !bad.length, bad.join(', ') || `${links.length} links, ${icons.length} manifest icons`); }
   // 1) every screen, every phone size, the full tap-through

@@ -1,7 +1,7 @@
 // Opens the live site and checks: it serves the version in version.json (retrying while Pages' cache catches up),
 // the page loads with no script errors, and the demo song reads back right.
 const fs = require('fs'), path = require('path'), { chromium } = require(process.env.PW_PATH || 'playwright-core');
-const SITE = process.env.SITE_URL || 'https://prestonnoland2020-hub.github.io/Voicing/';
+const SITE = process.env.SITE_URL || 'https://preston-noland.github.io/Voicing/';
 const want = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'version.json'), 'utf8')).version;
 (async () => {
   let got = '';

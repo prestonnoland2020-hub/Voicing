@@ -2,7 +2,7 @@
 
 Hear a song, learn it the way it was recorded: capo, tuning, the exact chord shapes, and the picked notes between them. Plus a guitar tuner.
 
-Live: https://prestonnoland2020-hub.github.io/Voicing/
+Live: https://preston-noland.github.io/Voicing/
 
 Everything runs on the phone in the browser. No account, nothing uploaded. An optional guitar splitter server (`server/`) can be switched on later; until then the app never contacts it.
 
