@@ -14,7 +14,7 @@ import modal
 
 DAILY_CAP = int(os.environ.get("VOICING_DAILY_CAP", "100"))  # songs per day, across everyone
 MAX_SECONDS = 150
-ALLOWED_ORIGINS = ["https://prestonnoland2020-hub.github.io"]
+ALLOWED_ORIGINS = ["https://preston-noland.github.io", "https://prestonnoland2020-hub.github.io"]
 
 app = modal.App("voicing-splitter")
 counts = modal.Dict.from_name("voicing-splitter-counts", create_if_missing=True)
